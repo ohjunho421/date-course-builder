@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"node -e '\\nconst fs=require(\\\"fs\\\");\\nconst f=\\\"src/lib/naver.ts\\\";\\nlet s=fs.readFileSync(f,\\\"utf8\\\");\\n// replace the control-char char-class with proper unicode escapes\\nconst before=s;...",
+  "error": "The argument 'args[1]' must be a string without null bytes. Received \"source /c/Users/dhwns/.claude/shell-snapshots/snapshot-bash-1780074248232-b8k9aj.sh 2>/dev/null || true && export TEMP='C:\\Users\\dhwns\\AppData\\Local\\Temp' TMP='C:\\Users\\dhwns\\AppData\\Local\\Temp' && shopt -u extglob 2>/dev/null || true && eval 'node -e '\\\"'\\\"'\nconst fs=require(\\\"fs\\\");\nconst f=\\\"src/lib/naver.ts\\\";\nlet s=fs.readFileSync(f,\\\"utf8\\\");\n// replace the control-char char-class with proper unicode escapes\nconst before...",
+  "timestamp": "2026-05-29T19:00:42.942Z",
+  "retry_count": 1
+}

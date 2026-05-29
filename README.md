@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 코스픽 (CoursePick)
 
-## Getting Started
+네이버 지도 공유 링크만 넣으면, **사진·리뷰·지도 동선**까지 담긴 데이트 코스 페이지가 완성되는 서비스. 상대에게 **링크 하나**로 공유하세요.
 
-First, run the development server:
+## 특징
+
+- **코스 구조 자유 설정** — 카페→저녁→한잔, 저녁→한잔, 카페→저녁 등 단계를 자유롭게 추가/삭제/정렬
+- **네이버 링크 → 자동 카드** — `naver.me` 공유 링크를 넣으면 가게명·카테고리·사진·방문자/블로그 리뷰 수·리뷰 키워드·메뉴·영업시간·좌표를 자동 추출
+- **단계별 다중 선택지** — 한 단계에 여러 후보를 넣으면, 상대가 직접 고를 수 있는 페이지가 생성됨
+- **지도 동선 + 이동수단 토글** — 도보/차량/대중교통을 전환하면 경로와 예상 시간이 바뀜. 구간마다 네이버 길찾기 딥링크 제공
+- **로그인 없이** 누구나 코스 생성 → 공유 링크 발급
+
+## 기술 스택
+
+- Next.js 16 (App Router) · React 19 · TypeScript
+- PostgreSQL + Prisma (로컬은 `DATABASE_URL` 미설정 시 `.data/` 파일 저장으로 폴백)
+- Leaflet + OpenStreetMap (지도)
+- OpenRouteService (도보/차량 실경로, 선택) — 키 없으면 직선거리 추정
+
+## 로컬 실행
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`DATABASE_URL` 없이도 동작합니다(코스는 `.data/courses.json`에 저장). Postgres를 쓰려면 `.env`에 `DATABASE_URL`을 넣고 `npx prisma db push`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 환경 변수
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 변수 | 필수 | 설명 |
+|------|------|------|
+| `DATABASE_URL` | 배포 시 | PostgreSQL 연결 문자열 (Railway가 자동 주입) |
+| `ORS_API_KEY` | 선택 | OpenRouteService 키. 있으면 도보/차량 실제 도로 경로, 없으면 직선거리 추정 |
 
-## Learn More
+## 배포 (Railway)
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. PostgreSQL 플러그인 추가 → `DATABASE_URL` 연결
+2. 배포 시 `postinstall`에서 `prisma generate`, `start`에서 `prisma db push` 자동 실행
+3. (선택) `ORS_API_KEY` 추가

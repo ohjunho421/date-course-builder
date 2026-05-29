@@ -1,26 +1,157 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --wine: #6e1423;
+  --wine-2: #a31d2e;
+  --rose: #d98a8a;
+  --cream: #f7f1e8;
+  --paper: #fcf8f1;
+  --ink: #2a201d;
+  --ink-soft: #6a5d57;
+  --gold: #b08a4f;
+  --line: rgba(110, 20, 35, 0.12);
+  --shadow: 0 18px 50px -20px rgba(60, 15, 25, 0.35);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-wine: var(--wine);
+  --color-wine2: var(--wine-2);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --font-serif: "Gowun Batang", serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(120% 60% at 80% -10%, #fbe7e0 0%, transparent 55%),
+    radial-gradient(120% 60% at -10% 5%, #f3ead9 0%, transparent 50%),
+    var(--paper);
+  color: var(--ink);
+  font-family: "Pretendard", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.serif {
+  font-family: "Gowun Batang", serif;
+}
+
+/* ---- buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  border-radius: 13px;
+  padding: 13px 16px;
+  font-size: 15px;
+  transition: 0.18s;
+  text-decoration: none;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-wine {
+  background: var(--wine);
+  color: #fff;
+}
+.btn-wine:not(:disabled):active {
+  filter: brightness(0.92);
+}
+.btn-ghost {
+  background: #fff;
+  color: var(--wine);
+  border: 1.6px solid var(--wine);
+}
+.btn-naver {
+  background: #03c75a;
+  color: #fff;
+}
+
+.card {
+  background: #fff;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: 0.25s ease;
+}
+.card.selected {
+  border-color: var(--wine-2);
+  box-shadow: 0 0 0 2px var(--wine-2), 0 18px 50px -18px rgba(110, 20, 35, 0.5);
+}
+
+.field {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+.field:focus {
+  outline: none;
+  border-color: var(--wine-2);
+  box-shadow: 0 0 0 3px rgba(163, 29, 46, 0.12);
+}
+
+.tag {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wine-2);
+  background: #fbeae6;
+  border: 1px solid #f3d3cb;
+  border-radius: 999px;
+  padding: 5px 11px;
+}
+
+.chip {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-weight: 600;
+  color: var(--wine);
+  font-size: 13px;
+}
+
+/* leaflet pin */
+.pin {
+  background: var(--wine);
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 10px -3px rgba(40, 10, 18, 0.6);
+  border: 2px solid #fff;
+}
+.pin span {
+  transform: rotate(45deg);
+  font-family: "Gowun Batang", serif;
+  font-weight: 700;
+  font-size: 14px;
+}
+.leaflet-container {
+  font-family: inherit;
+}
+
+.hide-scroll::-webkit-scrollbar {
+  display: none;
+}
+.hide-scroll {
+  scrollbar-width: none;
 }
