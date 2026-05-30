@@ -321,7 +321,10 @@ function StopEditor({
             flex: "none",
             color: "var(--ink-soft)",
             fontSize: 16,
-            padding: "4px 2px",
+            minWidth: 28,
+            minHeight: 44,
+            display: "grid",
+            placeItems: "center",
             userSelect: "none",
             touchAction: "none",
           }}
@@ -335,7 +338,7 @@ function StopEditor({
           aria-label="이모지"
           style={{ width: 44, textAlign: "center", fontSize: 18, border: "1px solid var(--line)", borderRadius: 10, padding: "8px 0", background: "#fff" }}
         />
-        <input className="field" style={{ flex: 1 }} placeholder="단계 이름 (예: 카페)" value={stop.label} onChange={(e) => onLabel(e.target.value)} />
+        <input className="field" style={{ flex: 1 }} aria-label="단계 이름" placeholder="단계 이름 (예: 카페)" value={stop.label} onChange={(e) => onLabel(e.target.value)} />
         <div style={{ display: "flex", gap: 4, flex: "none" }}>
           <IconBtn disabled={index === 0} onClick={() => onMove(-1)}>↑</IconBtn>
           <IconBtn disabled={index === total - 1} onClick={() => onMove(1)}>↓</IconBtn>
@@ -359,7 +362,22 @@ function StopEditor({
               {p.lat == null ? " · ⚠️ 좌표 없음" : ""}
             </div>
           </div>
-          <button onClick={() => onRemovePlace(p.placeId)} style={{ background: "none", border: "none", color: "var(--ink-soft)", cursor: "pointer", fontSize: 16, flex: "none" }}>
+          <button
+            onClick={() => onRemovePlace(p.placeId)}
+            aria-label={`${p.name} 삭제`}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--ink-soft)",
+              cursor: "pointer",
+              fontSize: 16,
+              flex: "none",
+              width: 40,
+              height: 40,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
             ✕
           </button>
         </div>
@@ -369,6 +387,7 @@ function StopEditor({
         <input
           className="field"
           style={{ flex: 1 }}
+          aria-label="네이버 지도 공유 링크"
           placeholder="네이버 지도 공유 링크 (naver.me/...)"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
@@ -391,9 +410,9 @@ function IconBtn({ children, onClick, disabled }: { children: React.ReactNode; o
       onClick={onClick}
       disabled={disabled}
       style={{
-        width: 32,
-        height: 32,
-        borderRadius: 9,
+        width: 40,
+        height: 40,
+        borderRadius: 10,
         border: "1px solid var(--line)",
         background: "#fff",
         cursor: disabled ? "not-allowed" : "pointer",

@@ -9,6 +9,7 @@
   --ink: #2a201d;
   --ink-soft: #6a5d57;
   --gold: #b08a4f;
+  --gold-deep: #7a5c2b; /* AA-contrast gold for small text on light bg */
   --line: rgba(110, 20, 35, 0.12);
   --shadow: 0 18px 50px -20px rgba(60, 15, 25, 0.35);
 }
@@ -95,7 +96,7 @@ body {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px 14px;
-  font-size: 15px;
+  font-size: 16px; /* >=16px prevents iOS focus auto-zoom */
   font-family: inherit;
   background: #fff;
   color: var(--ink);
@@ -154,4 +155,23 @@ body {
 }
 .hide-scroll {
   scrollbar-width: none;
+}
+
+/* keyboard focus ring for buttons / links */
+.btn:focus-visible,
+.chip:focus-visible {
+  outline: 2px solid var(--wine-2);
+  outline-offset: 2px;
+}
+
+/* respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }

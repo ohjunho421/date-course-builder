@@ -336,9 +336,10 @@ export default function CourseView({ course }: CourseViewProps) {
               ))}
             </div>
 
-            <input className="field" placeholder="이름 (선택)" value={respName} onChange={(e) => setRespName(e.target.value)} style={{ marginBottom: 10 }} />
+            <input className="field" aria-label="이름" placeholder="이름 (선택)" value={respName} onChange={(e) => setRespName(e.target.value)} style={{ marginBottom: 10 }} />
             <textarea
               className="field"
+              aria-label="한마디"
               placeholder="한마디 남기기 (선택) — 예: 여기 너무 좋다! 토요일 어때?"
               value={respMsg}
               onChange={(e) => setRespMsg(e.target.value)}
@@ -395,7 +396,7 @@ export default function CourseView({ course }: CourseViewProps) {
               <button
                 onClick={() => setOpen(false)}
                 aria-label="닫기"
-                style={{ background: "#fff", border: "1px solid var(--line)", width: 34, height: 34, borderRadius: "50%", fontSize: 20, color: "var(--ink-soft)", cursor: "pointer" }}
+                style={{ background: "#fff", border: "1px solid var(--line)", width: 44, height: 44, borderRadius: "50%", fontSize: 20, color: "var(--ink-soft)", cursor: "pointer", flex: "none" }}
               >
                 ×
               </button>
@@ -599,7 +600,7 @@ function PlaceCard({
       )}
       <div style={{ padding: "18px 18px 16px" }}>
         <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.02em" }}>{place.name}</div>
-        <div style={{ fontSize: 13, color: "var(--gold)", fontWeight: 700, marginTop: 2 }}>
+        <div style={{ fontSize: 13, color: "var(--gold-deep)", fontWeight: 700, marginTop: 2 }}>
           {place.emoji} {place.category}
         </div>
         {(place.visitor || place.blog) && (
@@ -787,7 +788,7 @@ function Timeline({
                   ...(n.place ? {} : { background: "#faf3ec", borderStyle: "dashed" }),
                 }}
               >
-                <div style={{ fontSize: 11, letterSpacing: ".12em", fontWeight: 700, color: "var(--gold)" }}>
+                <div style={{ fontSize: 11, letterSpacing: ".12em", fontWeight: 700, color: "var(--gold-deep)" }}>
                   {n.st.emoji} {n.st.label}
                 </div>
                 {n.place ? (
