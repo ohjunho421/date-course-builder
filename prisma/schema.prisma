@@ -8,11 +8,25 @@ datasource db {
 }
 
 model Course {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  title     String
-  intro     String?
-  modes     String   @default("walk")
-  stops     Json
-  createdAt DateTime @default(now())
+  id         String     @id @default(cuid())
+  slug       String     @unique
+  ownerToken String     @default("")
+  title      String
+  intro      String?
+  modes      String     @default("walk")
+  stops      Json
+  createdAt  DateTime   @default(now())
+  responses  Response[]
+}
+
+model Response {
+  id         String   @id @default(cuid())
+  courseSlug String
+  name       String?
+  message    String?
+  picks      Json // { [stopId]: placeName }
+  createdAt  DateTime @default(now())
+  course     Course   @relation(fields: [courseSlug], references: [slug], onDelete: Cascade)
+
+  @@index([courseSlug])
 }

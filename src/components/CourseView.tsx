@@ -50,6 +50,12 @@ export default function CourseView({ course }: CourseViewProps) {
   const [legs, setLegs] = useState<Leg[]>([]);
   const [routing, setRouting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [respName, setRespName] = useState("");
+  const [respMsg, setRespMsg] = useState("");
+  const [submitErr, setSubmitErr] = useState("");
 
   const stopById = useCallback(
     (id: string) => course.stops.find((s) => s.id === id),
@@ -116,6 +122,35 @@ export default function CourseView({ course }: CourseViewProps) {
     } catch {}
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
+  }
+
+  async function submitResponse() {
+    setSubmitErr("");
+    const picks: Record<string, string> = {};
+    for (const st of course.stops) {
+      const n = selected[st.id];
+      if (n) picks[st.id] = n;
+    }
+    if (Object.keys(picks).length === 0) {
+      setSubmitErr("장소를 먼저 골라줘.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/courses/${course.slug}/responses`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: respName, message: respMsg, picks }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "전송에 실패했어요.");
+      setSubmitted(true);
+      setSubmitOpen(false);
+    } catch (e: unknown) {
+      setSubmitErr(e instanceof Error ? e.message : "전송에 실패했어요.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const courseDone = course.stops.every((st) => selected[st.id]);
@@ -225,11 +260,103 @@ export default function CourseView({ course }: CourseViewProps) {
               })}
             </div>
           </div>
-          <button className="btn btn-wine" style={{ flex: "none", padding: "11px 16px", fontSize: 14 }} onClick={() => setOpen(true)}>
-            동선 보기
-          </button>
+          <div style={{ flex: "none", display: "flex", gap: 8 }}>
+            <button className="btn btn-ghost" style={{ padding: "11px 13px", fontSize: 14 }} onClick={() => setOpen(true)}>
+              🗺️ 동선
+            </button>
+            <button
+              className="btn btn-wine"
+              style={{ padding: "11px 14px", fontSize: 14 }}
+              onClick={() => setSubmitOpen(true)}
+              disabled={submitted}
+            >
+              {submitted ? "보냈어요 ✓" : "선택 보내기"}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* submit sheet */}
+      {submitOpen && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSubmitOpen(false);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            background: "rgba(35,12,18,.5)",
+            backdropFilter: "blur(3px)",
+          }}
+        >
+          <div
+            className="hide-scroll"
+            style={{
+              width: "100%",
+              maxWidth: 560,
+              background: "var(--paper)",
+              borderRadius: "26px 26px 0 0",
+              padding: "10px 20px calc(22px + env(safe-area-inset-bottom))",
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
+          >
+            <div style={{ width: 42, height: 5, borderRadius: 999, background: "rgba(110,20,35,.18)", margin: "4px auto 14px" }} />
+            <div className="serif" style={{ fontSize: 22, fontWeight: 700, color: "var(--wine)", marginBottom: 4 }}>
+              내 선택 보내기 💌
+            </div>
+            <p style={{ fontSize: 13.5, color: "var(--ink-soft)", margin: "0 0 14px" }}>
+              고른 코스를 상대에게 알려줄게요.
+            </p>
+
+            <div
+              style={{
+                background: "#fff",
+                border: "1px solid var(--line)",
+                borderRadius: 14,
+                padding: "12px 14px",
+                marginBottom: 14,
+                display: "grid",
+                gap: 8,
+              }}
+            >
+              {course.stops.map((st) => (
+                <div key={st.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+                  <span style={{ color: "var(--ink-soft)" }}>
+                    {st.emoji} {st.label}
+                  </span>
+                  <span style={{ fontWeight: 700, color: selected[st.id] ? "var(--wine)" : "var(--ink-soft)" }}>
+                    {selected[st.id] || "미정"}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <input className="field" placeholder="이름 (선택)" value={respName} onChange={(e) => setRespName(e.target.value)} style={{ marginBottom: 10 }} />
+            <textarea
+              className="field"
+              placeholder="한마디 남기기 (선택) — 예: 여기 너무 좋다! 토요일 어때?"
+              value={respMsg}
+              onChange={(e) => setRespMsg(e.target.value)}
+              rows={2}
+              style={{ marginBottom: 12, resize: "none" }}
+            />
+            {submitErr && <div style={{ color: "var(--wine-2)", fontSize: 13, marginBottom: 10 }}>{submitErr}</div>}
+            <div style={{ display: "flex", gap: 9 }}>
+              <button className="btn btn-ghost" style={{ flex: "none", padding: "13px 18px" }} onClick={() => setSubmitOpen(false)}>
+                취소
+              </button>
+              <button className="btn btn-wine" style={{ flex: 1 }} onClick={submitResponse} disabled={submitting}>
+                {submitting ? "보내는 중…" : "보내기 →"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* modal */}
       {open && (

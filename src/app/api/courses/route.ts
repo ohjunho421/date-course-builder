@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       modes: modes.filter((m) => ["walk", "car", "transit"].includes(m)),
       stops: validStops,
     });
-    return NextResponse.json({ slug: course.slug });
+    return NextResponse.json({ slug: course.slug, ownerToken: course.ownerToken });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "코스를 저장하지 못했어요.";
     return NextResponse.json({ error: msg }, { status: 500 });

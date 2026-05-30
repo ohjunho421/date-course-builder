@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { nanoid } from "nanoid";
 import type { Place, Stop } from "@/lib/types";
@@ -104,11 +104,36 @@ export default function Builder() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "저장 실패");
-      router.push(`/c/${j.slug}`);
+      router.push(`/c/${j.slug}/share?key=${j.ownerToken}`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "저장에 실패했어요.");
       setSubmitting(false);
     }
+  }
+
+  // drag-and-drop reordering of stops
+  const dragId = useRef<string | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
+  function onDragStart(id: string) {
+    dragId.current = id;
+    setDragging(id);
+  }
+  function onDragEnter(id: string) {
+    const from = dragId.current;
+    if (!from || from === id) return;
+    setStops((s) => {
+      const fi = s.findIndex((x) => x.id === from);
+      const ti = s.findIndex((x) => x.id === id);
+      if (fi < 0 || ti < 0) return s;
+      const copy = [...s];
+      const [moved] = copy.splice(fi, 1);
+      copy.splice(ti, 0, moved);
+      return copy;
+    });
+  }
+  function onDragEnd() {
+    dragId.current = null;
+    setDragging(null);
   }
 
   return (
@@ -142,18 +167,25 @@ export default function Builder() {
       </Section>
 
       <Section title="③ 단계별 장소">
+        <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 10 }}>
+          ⠿ 손잡이를 잡고 끌어서 순서를 바꿀 수 있어요
+        </div>
         {stops.map((stop, i) => (
           <StopEditor
             key={stop.id}
             stop={stop}
             index={i}
             total={stops.length}
+            isDragging={dragging === stop.id}
             onLabel={(v) => setStopLabel(stop.id, v)}
             onEmoji={(v) => setStopEmoji(stop.id, v)}
             onRemove={() => removeStop(stop.id)}
             onMove={(d) => moveStop(stop.id, d)}
             onAddPlace={(pl) => addPlace(stop.id, pl)}
             onRemovePlace={(pid) => removePlace(stop.id, pid)}
+            onDragStart={() => onDragStart(stop.id)}
+            onDragEnter={() => onDragEnter(stop.id)}
+            onDragEnd={onDragEnd}
           />
         ))}
         <button className="btn btn-ghost" style={{ width: "100%", marginTop: 4 }} onClick={addStop}>
@@ -212,26 +244,35 @@ function StopEditor({
   stop,
   index,
   total,
+  isDragging,
   onLabel,
   onEmoji,
   onRemove,
   onMove,
   onAddPlace,
   onRemovePlace,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
 }: {
   stop: Stop;
   index: number;
   total: number;
+  isDragging: boolean;
   onLabel: (v: string) => void;
   onEmoji: (v: string) => void;
   onRemove: () => void;
   onMove: (d: -1 | 1) => void;
   onAddPlace: (p: Place) => void;
   onRemovePlace: (placeId: string) => void;
+  onDragStart: () => void;
+  onDragEnter: () => void;
+  onDragEnd: () => void;
 }) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [armed, setArmed] = useState(false);
 
   async function add() {
     setErr("");
@@ -255,8 +296,38 @@ function StopEditor({
   }
 
   return (
-    <div className="card" style={{ padding: 16, marginBottom: 14 }}>
+    <div
+      className="card"
+      draggable={armed}
+      onDragStart={onDragStart}
+      onDragEnter={onDragEnter}
+      onDragOver={(e) => e.preventDefault()}
+      onDragEnd={() => {
+        setArmed(false);
+        onDragEnd();
+      }}
+      style={{ padding: 16, marginBottom: 14, opacity: isDragging ? 0.45 : 1 }}
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <span
+          onMouseDown={() => setArmed(true)}
+          onMouseUp={() => setArmed(false)}
+          onTouchStart={() => setArmed(true)}
+          onTouchEnd={() => setArmed(false)}
+          title="끌어서 순서 변경"
+          aria-label="드래그 핸들"
+          style={{
+            cursor: "grab",
+            flex: "none",
+            color: "var(--ink-soft)",
+            fontSize: 16,
+            padding: "4px 2px",
+            userSelect: "none",
+            touchAction: "none",
+          }}
+        >
+          ⠿
+        </span>
         <span style={{ fontWeight: 800, color: "var(--wine)", fontSize: 14, flex: "none" }}>{index + 1}</span>
         <input
           value={stop.emoji}

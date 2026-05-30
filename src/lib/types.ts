@@ -33,7 +33,16 @@ export type CourseData = {
 
 export type Course = CourseData & {
   slug: string;
+  ownerToken?: string;
   createdAt?: string;
+};
+
+export type CourseResponse = {
+  id: string;
+  name: string;
+  message: string;
+  picks: Record<string, string>; // stopId -> placeName
+  createdAt: string;
 };
 
 export const MODE_LABEL: Record<string, string> = {
