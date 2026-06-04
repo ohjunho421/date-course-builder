@@ -34,7 +34,17 @@ export type CourseData = {
 export type Course = CourseData & {
   slug: string;
   ownerToken?: string;
+  userId?: string;
   createdAt?: string;
+};
+
+export type CourseSummary = {
+  slug: string;
+  ownerToken: string;
+  title: string;
+  stopCount: number;
+  responseCount: number;
+  createdAt: string;
 };
 
 export type CourseResponse = {

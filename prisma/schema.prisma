@@ -11,12 +11,15 @@ model Course {
   id         String     @id @default(cuid())
   slug       String     @unique
   ownerToken String     @default("")
+  userId     String?
   title      String
   intro      String?
   modes      String     @default("walk")
   stops      Json
   createdAt  DateTime   @default(now())
   responses  Response[]
+
+  @@index([userId])
 }
 
 model Response {

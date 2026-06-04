@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createCourse } from "@/lib/store";
+import { getSession } from "@/lib/auth";
 import type { CourseData, Stop } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -25,12 +26,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const course = await createCourse({
-      title,
-      intro: (body.intro || "").trim(),
-      modes: modes.filter((m) => ["walk", "car", "transit"].includes(m)),
-      stops: validStops,
-    });
+    const session = await getSession();
+    const course = await createCourse(
+      {
+        title,
+        intro: (body.intro || "").trim(),
+        modes: modes.filter((m) => ["walk", "car", "transit"].includes(m)),
+        stops: validStops,
+      },
+      session?.id
+    );
     return NextResponse.json({ slug: course.slug, ownerToken: course.ownerToken });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "코스를 저장하지 못했어요.";

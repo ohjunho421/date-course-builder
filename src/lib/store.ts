@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { customAlphabet } from "nanoid";
-import type { Course, CourseData, CourseResponse, Place, Stop } from "./types";
+import type { Course, CourseData, CourseResponse, CourseSummary, Place, Stop } from "./types";
 
 const nano = customAlphabet("23456789abcdefghjkmnpqrstuvwxyz", 8);
 const nanoToken = customAlphabet("23456789abcdefghjkmnpqrstuvwxyz", 16);
@@ -26,10 +26,10 @@ async function writeJson(file: string, data: unknown) {
 }
 
 /* ---------- courses ---------- */
-export async function createCourse(data: CourseData): Promise<Course> {
+export async function createCourse(data: CourseData, userId?: string): Promise<Course> {
   const slug = nano();
   const ownerToken = nanoToken();
-  const course: Course = { ...data, slug, ownerToken, createdAt: new Date().toISOString() };
+  const course: Course = { ...data, slug, ownerToken, userId, createdAt: new Date().toISOString() };
 
   if (useDb) {
     const { prisma } = await import("./prisma");
@@ -37,6 +37,7 @@ export async function createCourse(data: CourseData): Promise<Course> {
       data: {
         slug,
         ownerToken,
+        userId: userId ?? null,
         title: data.title,
         intro: data.intro,
         modes: data.modes.join(","),
@@ -153,4 +154,45 @@ export async function getResponses(slug: string): Promise<CourseResponse[]> {
   }
   const all = await readJson<Record<string, CourseResponse[]>>(RESP_FILE, {});
   return [...(all[slug] ?? [])].reverse();
+}
+
+/* ---------- history (per user) ---------- */
+export async function getCoursesByUser(userId: string): Promise<CourseSummary[]> {
+  if (useDb) {
+    const { prisma } = await import("./prisma");
+    const rows = await prisma.course.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        slug: true,
+        ownerToken: true,
+        title: true,
+        stops: true,
+        createdAt: true,
+        _count: { select: { responses: true } },
+      },
+    });
+    return rows.map((r) => ({
+      slug: r.slug,
+      ownerToken: r.ownerToken,
+      title: r.title,
+      stopCount: Array.isArray(r.stops) ? (r.stops as unknown[]).length : 0,
+      responseCount: r._count.responses,
+      createdAt: r.createdAt.toISOString(),
+    }));
+  }
+
+  const courses = await readJson<Record<string, Course>>(COURSE_FILE, {});
+  const responses = await readJson<Record<string, CourseResponse[]>>(RESP_FILE, {});
+  return Object.values(courses)
+    .filter((c) => c.userId === userId)
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
+    .map((c) => ({
+      slug: c.slug,
+      ownerToken: c.ownerToken ?? "",
+      title: c.title,
+      stopCount: c.stops.length,
+      responseCount: (responses[c.slug] ?? []).length,
+      createdAt: c.createdAt || "",
+    }));
 }
