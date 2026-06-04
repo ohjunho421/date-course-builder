@@ -7,9 +7,10 @@ export async function GET(req: NextRequest) {
   if (!key) {
     return NextResponse.redirect(`${req.nextUrl.origin}/?login=unconfigured`);
   }
-  const origin = req.nextUrl.origin;
-  const redirectUri = `${origin}/api/auth/kakao/callback`;
-  const next = req.nextUrl.searchParams.get("next") || "/history";
+  // 배포 환경에서는 고정된 도메인 사용, 로컬에서는 현재 origin 사용
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || req.nextUrl.origin;
+  const redirectUri = `${baseUrl}/api/auth/kakao/callback`;
+  const next = req.nextUrl.searchParams.get("next") || "/history"; // 로그인 후 이동할 페이지
 
   const authUrl = new URL("https://kauth.kakao.com/oauth/authorize");
   authUrl.searchParams.set("client_id", key);
@@ -22,6 +23,7 @@ export async function GET(req: NextRequest) {
     maxAge: 600,
     path: "/",
     sameSite: "lax",
+    secure: baseUrl.startsWith("https"),
   });
   return res;
 }

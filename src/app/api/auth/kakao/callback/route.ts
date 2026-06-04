@@ -11,7 +11,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/?login=fail`);
   }
 
-  const redirectUri = `${origin}/api/auth/kakao/callback`;
+  // 배포 환경에서는 고정된 도메인 사용, 로컬에서는 현재 origin 사용
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || origin;
+  const redirectUri = `${baseUrl}/api/auth/kakao/callback`;
   const clientSecret = process.env.KAKAO_CLIENT_SECRET || "";
 
   try {
@@ -51,7 +53,7 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.redirect(`${origin}${dest}`);
     res.cookies.set(SESSION_COOKIE, jwt, {
       httpOnly: true,
-      secure: origin.startsWith("https"),
+      secure: baseUrl.startsWith("https"),
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 30,
       path: "/",
