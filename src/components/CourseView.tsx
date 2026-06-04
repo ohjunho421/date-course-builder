@@ -35,14 +35,27 @@ interface CourseViewProps {
 export default function CourseView({ course }: CourseViewProps) {
   const modes = course.modes.length ? course.modes : ["walk"];
 
+  // local stops state so partner-added places appear without reload
+  const [stops, setStops] = useState<Stop[]>(course.stops);
+
+  function handleAddPlace(stopId: string, place: Place) {
+    setStops((prev) =>
+      prev.map((s) =>
+        s.id === stopId && !s.places.some((p) => p.placeId === place.placeId)
+          ? { ...s, places: [...s.places, place] }
+          : s
+      )
+    );
+  }
+
   // auto-select stops that have exactly one place
   const initialSel = useMemo(() => {
     const s: Record<string, string | null> = {};
-    course.stops.forEach((st) => {
+    stops.forEach((st) => {
       s[st.id] = st.places.length === 1 ? st.places[0].name : null;
     });
     return s;
-  }, [course.stops]);
+  }, [stops]);
 
   const [selected, setSelected] = useState<Record<string, string | null>>(initialSel);
   const [open, setOpen] = useState(false);
@@ -57,20 +70,15 @@ export default function CourseView({ course }: CourseViewProps) {
   const [respMsg, setRespMsg] = useState("");
   const [submitErr, setSubmitErr] = useState("");
 
-  const stopById = useCallback(
-    (id: string) => course.stops.find((s) => s.id === id),
-    [course.stops]
-  );
-
   const pickedPlaces = useMemo<Place[]>(() => {
     const out: Place[] = [];
-    for (const st of course.stops) {
+    for (const st of stops) {
       const name = selected[st.id];
       const p = name ? st.places.find((pl) => pl.name === name) : null;
       if (p) out.push(p);
     }
     return out;
-  }, [selected, course.stops]);
+  }, [selected, stops]);
 
   const geoPoints = useMemo<MapPoint[]>(
     () =>
@@ -112,7 +120,7 @@ export default function CourseView({ course }: CourseViewProps) {
   const mapLegs: MapLeg[] = legs.map((l) => ({ geometry: l.geometry, estimated: l.estimated }));
 
   async function copyCourse() {
-    const lines = course.stops.map((st, i) => {
+    const lines = stops.map((st, i) => {
       const n = selected[st.id] || "미정";
       return `${i + 1}. ${st.label} · ${n}`;
     });
@@ -127,7 +135,7 @@ export default function CourseView({ course }: CourseViewProps) {
   async function submitResponse() {
     setSubmitErr("");
     const picks: Record<string, string> = {};
-    for (const st of course.stops) {
+    for (const st of stops) {
       const n = selected[st.id];
       if (n) picks[st.id] = n;
     }
@@ -153,7 +161,7 @@ export default function CourseView({ course }: CourseViewProps) {
     }
   }
 
-  const courseDone = course.stops.every((st) => selected[st.id]);
+  const courseDone = stops.every((st) => selected[st.id]);
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 18px 110px" }}>
@@ -190,7 +198,7 @@ export default function CourseView({ course }: CourseViewProps) {
             alignItems: "center",
           }}
         >
-          {course.stops.map((st, i) => (
+          {stops.map((st, i) => (
             <span key={st.id} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               {i > 0 && <i style={{ color: "var(--gold)", fontStyle: "normal", fontWeight: 700 }}>→</i>}
               <span className="chip">
@@ -202,13 +210,15 @@ export default function CourseView({ course }: CourseViewProps) {
       </header>
 
       {/* stops */}
-      {course.stops.map((st, idx) => (
+      {stops.map((st, idx) => (
         <StopSection
           key={st.id}
           stop={st}
           no={idx + 1}
+          slug={course.slug}
           selectedName={selected[st.id]}
           onPick={(name) => pick(st.id, name)}
+          onPlaceAdded={(place) => handleAddPlace(st.id, place)}
         />
       ))}
 
@@ -241,7 +251,7 @@ export default function CourseView({ course }: CourseViewProps) {
                 textOverflow: "ellipsis",
               }}
             >
-              {course.stops.map((st, i) => {
+              {stops.map((st, i) => {
                 const n = selected[st.id];
                 return (
                   <span key={st.id}>
@@ -324,7 +334,7 @@ export default function CourseView({ course }: CourseViewProps) {
                 gap: 8,
               }}
             >
-              {course.stops.map((st) => (
+              {stops.map((st) => (
                 <div key={st.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
                   <span style={{ color: "var(--ink-soft)" }}>
                     {st.emoji} {st.label}
@@ -454,7 +464,7 @@ export default function CourseView({ course }: CourseViewProps) {
             )}
 
             {/* timeline */}
-            <Timeline course={course} selected={selected} legs={legs} mode={mode} routing={routing} />
+            <Timeline stops={stops} selected={selected} legs={legs} mode={mode} routing={routing} />
 
             <div style={{ display: "flex", gap: 9, marginTop: 6 }}>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={copyCourse}>
@@ -475,13 +485,17 @@ export default function CourseView({ course }: CourseViewProps) {
 function StopSection({
   stop,
   no,
+  slug,
   selectedName,
   onPick,
+  onPlaceAdded,
 }: {
   stop: Stop;
   no: number;
+  slug: string;
   selectedName: string | null;
   onPick: (name: string) => void;
+  onPlaceAdded: (place: Place) => void;
 }) {
   const pickable = stop.places.length > 1;
   return (
@@ -520,7 +534,113 @@ function StopSection({
       {stop.places.map((p) => (
         <PlaceCard key={p.name + p.placeId} place={p} selected={selectedName === p.name} canPick={pickable} onPick={() => onPick(p.name)} />
       ))}
+      <AddPlaceForm slug={slug} stopId={stop.id} stopLabel={stop.label} onAdded={onPlaceAdded} />
     </section>
+  );
+}
+
+function AddPlaceForm({
+  slug,
+  stopId,
+  stopLabel,
+  onAdded,
+}: {
+  slug: string;
+  stopId: string;
+  stopLabel: string;
+  onAdded: (place: Place) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function add() {
+    setErr("");
+    if (!url.trim()) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/courses/${slug}/places`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stopId, url: url.trim() }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "추가하지 못했어요.");
+      onAdded(j.place as Place);
+      setUrl("");
+      setOpen(false);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "추가하지 못했어요.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        style={{
+          width: "100%",
+          border: "1.5px dashed var(--line)",
+          background: "transparent",
+          color: "var(--wine)",
+          borderRadius: 14,
+          padding: "13px",
+          fontSize: 14,
+          fontWeight: 700,
+          fontFamily: "inherit",
+          cursor: "pointer",
+          marginBottom: 20,
+        }}
+      >
+        ＋ 「{stopLabel}」에 다른 곳 추가하기
+      </button>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--line)",
+        background: "#fff",
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 20,
+      }}
+    >
+      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--wine)", marginBottom: 8 }}>
+        「{stopLabel}」에 가고 싶은 곳 추가
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          className="field"
+          style={{ flex: 1 }}
+          aria-label="네이버 지도 공유 링크"
+          placeholder="네이버 지도 공유 링크 (naver.me/...)"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") add();
+          }}
+          autoFocus
+        />
+        <button className="btn btn-wine" style={{ flex: "none", padding: "0 16px" }} onClick={add} disabled={loading}>
+          {loading ? "…" : "추가"}
+        </button>
+      </div>
+      {err && <div style={{ color: "var(--wine-2)", fontSize: 12.5, marginTop: 6 }}>{err}</div>}
+      <button
+        onClick={() => {
+          setOpen(false);
+          setErr("");
+        }}
+        style={{ background: "none", border: "none", color: "var(--ink-soft)", fontSize: 12.5, cursor: "pointer", marginTop: 8, padding: 0 }}
+      >
+        취소
+      </button>
+    </div>
   );
 }
 
@@ -682,20 +802,20 @@ function PlaceCard({
 
 /* ---------- timeline ---------- */
 function Timeline({
-  course,
+  stops,
   selected,
   legs,
   mode,
   routing,
 }: {
-  course: Course;
+  stops: Stop[];
   selected: Record<string, string | null>;
   legs: Leg[];
   mode: string;
   routing: boolean;
 }) {
   // build ordered node list
-  const nodes = course.stops.map((st) => {
+  const nodes = stops.map((st) => {
     const name = selected[st.id];
     const place = name ? st.places.find((p) => p.name === name) ?? null : null;
     return { st, place };

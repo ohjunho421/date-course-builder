@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { customAlphabet } from "nanoid";
-import type { Course, CourseData, CourseResponse } from "./types";
+import type { Course, CourseData, CourseResponse, Place, Stop } from "./types";
 
 const nano = customAlphabet("23456789abcdefghjkmnpqrstuvwxyz", 8);
 const nanoToken = customAlphabet("23456789abcdefghjkmnpqrstuvwxyz", 16);
@@ -68,6 +68,39 @@ export async function getCourse(slug: string): Promise<Course | null> {
   }
   const all = await readJson<Record<string, Course>>(COURSE_FILE, {});
   return all[slug] ?? null;
+}
+
+/** append a place to a stop (dedup by placeId within that stop) */
+export async function addPlaceToStop(
+  slug: string,
+  stopId: string,
+  place: Place
+): Promise<{ added: boolean; stop?: Stop }> {
+  if (useDb) {
+    const { prisma } = await import("./prisma");
+    const row = await prisma.course.findUnique({ where: { slug } });
+    if (!row) return { added: false };
+    const stops = row.stops as unknown as Stop[];
+    const stop = stops.find((s) => s.id === stopId);
+    if (!stop) return { added: false };
+    if (stop.places.some((p) => p.placeId === place.placeId)) return { added: false, stop };
+    stop.places = [...stop.places, place];
+    await prisma.course.update({
+      where: { slug },
+      data: { stops: stops as unknown as object },
+    });
+    return { added: true, stop };
+  }
+
+  const all = await readJson<Record<string, Course>>(COURSE_FILE, {});
+  const course = all[slug];
+  if (!course) return { added: false };
+  const stop = course.stops.find((s) => s.id === stopId);
+  if (!stop) return { added: false };
+  if (stop.places.some((p) => p.placeId === place.placeId)) return { added: false, stop };
+  stop.places.push(place);
+  await writeJson(COURSE_FILE, all);
+  return { added: true, stop };
 }
 
 /* ---------- responses ---------- */
