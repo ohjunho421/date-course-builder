@@ -469,10 +469,10 @@ export default function CourseView({ course }: CourseViewProps) {
                   </div>
                 )}
 
-                {geoPoints.length > 0 && (
+                {geoPoints.length >= 2 && (
                   <div style={{ marginTop: 12 }}>
                     <a
-                      href={naverDirUrl(geoPoints.map((p) => ({ lat: p.lat, lng: p.lng })))}
+                      href={naverDirUrl(geoPoints[0], geoPoints[geoPoints.length - 1], mode)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn btn-ghost"
