@@ -167,7 +167,7 @@ export default function CourseView({ course }: CourseViewProps) {
             color: "var(--wine-2)",
           }}
         >
-          DATE COURSE
+          🌙 달에게 가는 길
         </div>
         <h1
           className="serif"

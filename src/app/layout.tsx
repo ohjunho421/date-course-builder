@@ -8,7 +8,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "코스픽 — 네이버 링크로 만드는 데이트 코스",
+  title: "달에게 가는 길 — 네이버 링크로 만드는 데이트 코스",
   description:
     "네이버 지도 링크만 넣으면, 사진·리뷰·지도 동선까지 담긴 데이트 코스 페이지가 완성됩니다. 상대에게 링크 하나로 공유하세요.",
 };

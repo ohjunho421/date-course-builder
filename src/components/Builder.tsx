@@ -82,7 +82,13 @@ export default function Builder() {
     setStops((s) => s.map((x) => (x.id === id ? { ...x, places: x.places.filter((p) => p.placeId !== placeId) } : x)));
   }
   function toggleMode(m: string) {
-    setModes((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]));
+    setModes((cur) => {
+      if (cur.includes(m)) {
+        // keep at least one mode selected
+        return cur.length > 1 ? cur.filter((x) => x !== m) : cur;
+      }
+      return [...cur, m];
+    });
   }
 
   async function submit() {
@@ -104,7 +110,7 @@ export default function Builder() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "저장 실패");
-      router.push(`/c/${j.slug}/share?key=${j.ownerToken}`);
+      router.push(`/c/${j.slug}?owner=${j.ownerToken}`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "저장에 실패했어요.");
       setSubmitting(false);
@@ -139,7 +145,7 @@ export default function Builder() {
   return (
     <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 18px 60px" }}>
       <header style={{ textAlign: "center", padding: "46px 6px 14px" }}>
-        <div style={{ fontSize: 12, letterSpacing: ".3em", fontWeight: 700, color: "var(--wine-2)" }}>COURSEPICK</div>
+        <div style={{ fontSize: 12, letterSpacing: ".24em", fontWeight: 700, color: "var(--wine-2)" }}>🌙 달에게 가는 길</div>
         <h1 className="serif" style={{ fontSize: 34, margin: "12px 0 8px", color: "var(--wine)", fontWeight: 700, lineHeight: 1.2 }}>
           데이트 코스 만들기
         </h1>
@@ -194,28 +200,35 @@ export default function Builder() {
       </Section>
 
       <Section title="④ 이동수단 옵션">
-        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 10 }}>코스 페이지에서 보여줄 이동수단을 골라요</div>
+        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 10 }}>
+          코스 페이지에서 보여줄 이동수단을 골라요 · <span style={{ color: "var(--wine-2)", fontWeight: 700 }}>탭해서 켜고 끄기</span> (최소 1개)
+        </div>
         <div style={{ display: "flex", gap: 8 }}>
-          {ALL_MODES.map((m) => (
-            <button
-              key={m}
-              onClick={() => toggleMode(m)}
-              style={{
-                flex: 1,
-                borderRadius: 11,
-                padding: "10px 0",
-                fontSize: 14,
-                fontWeight: 700,
-                fontFamily: "inherit",
-                cursor: "pointer",
-                border: modes.includes(m) ? "1.6px solid var(--wine)" : "1px solid var(--line)",
-                background: modes.includes(m) ? "var(--wine)" : "#fff",
-                color: modes.includes(m) ? "#fff" : "var(--ink-soft)",
-              }}
-            >
-              {MODE_EMOJI[m]} {MODE_LABEL[m]}
-            </button>
-          ))}
+          {ALL_MODES.map((m) => {
+            const on = modes.includes(m);
+            return (
+              <button
+                key={m}
+                onClick={() => toggleMode(m)}
+                aria-pressed={on}
+                style={{
+                  flex: 1,
+                  borderRadius: 11,
+                  padding: "11px 0",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                  border: on ? "1.6px solid var(--wine)" : "1px solid var(--line)",
+                  background: on ? "var(--wine)" : "#fff",
+                  color: on ? "#fff" : "var(--ink-soft)",
+                }}
+              >
+                {on ? "✓ " : ""}
+                {MODE_EMOJI[m]} {MODE_LABEL[m]}
+              </button>
+            );
+          })}
         </div>
       </Section>
 
