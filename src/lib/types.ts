@@ -31,6 +31,8 @@ export type CourseData = {
   stops: Stop[];
 };
 
+export type SelectedPlaces = Record<string, string[]>; // stopId -> [placeName, ...] (ordered)
+
 export type Course = CourseData & {
   slug: string;
   ownerToken?: string;
@@ -51,7 +53,7 @@ export type CourseResponse = {
   id: string;
   name: string;
   message: string;
-  picks: Record<string, string>; // stopId -> placeName
+  picks: Record<string, string[]>; // stopId -> [placeName, ...] (ordered)
   createdAt: string;
 };
 

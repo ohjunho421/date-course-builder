@@ -90,25 +90,30 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
             <div style={{ display: "grid", gap: 8 }}>
               {course.stops.map((st) => {
                 const picked = r.picks[st.id];
+                const pickedStr = picked && picked.length > 0 ? picked.join(", ") : "—";
                 return (
                   <div key={st.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
                     <span style={{ color: "var(--ink-soft)" }}>
                       {st.emoji} {st.label}
                     </span>
-                    <span style={{ fontWeight: 700, color: picked ? "var(--wine)" : "var(--ink-soft)" }}>
-                      {picked || "—"}
+                    <span style={{ fontWeight: 700, color: picked && picked.length > 0 ? "var(--wine)" : "var(--ink-soft)" }}>
+                      {pickedStr}
                     </span>
                   </div>
                 );
               })}
               {Object.keys(r.picks)
                 .filter((id) => !stopById(id))
-                .map((id) => (
-                  <div key={id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
-                    <span style={{ color: "var(--ink-soft)" }}>·</span>
-                    <span style={{ fontWeight: 700, color: "var(--wine)" }}>{r.picks[id]}</span>
-                  </div>
-                ))}
+                .map((id) => {
+                  const names = r.picks[id];
+                  const nameStr = Array.isArray(names) ? names.join(", ") : names;
+                  return (
+                    <div key={id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+                      <span style={{ color: "var(--ink-soft)" }}>·</span>
+                      <span style={{ fontWeight: 700, color: "var(--wine)" }}>{nameStr}</span>
+                    </div>
+                  );
+                })}
             </div>
             {r.message && (
               <div
@@ -123,7 +128,7 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
                   fontSize: 14,
                 }}
               >
-                “{r.message}”
+                "{r.message}"
               </div>
             )}
           </article>

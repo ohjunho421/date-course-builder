@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import type { Course, Place, Stop } from "@/lib/types";
+import type { Course, Place, Stop, SelectedPlaces } from "@/lib/types";
 import { MODE_LABEL, MODE_EMOJI } from "@/lib/types";
 import { fmtDist, fmtDur, naverDirUrl } from "@/lib/format";
 import type { MapLeg, MapPoint } from "./CourseMap";
@@ -51,14 +51,14 @@ export default function CourseView({ course }: CourseViewProps) {
 
   // auto-select stops that have exactly one place
   const initialSel = useMemo(() => {
-    const s: Record<string, string | null> = {};
+    const s: SelectedPlaces = {};
     stops.forEach((st) => {
-      s[st.id] = st.places.length === 1 ? st.places[0].name : null;
+      s[st.id] = st.places.length === 1 ? [st.places[0].name] : [];
     });
     return s;
   }, [stops]);
 
-  const [selected, setSelected] = useState<Record<string, string | null>>(initialSel);
+  const [selected, setSelected] = useState<SelectedPlaces>(initialSel);
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState(modes[0]);
   const [legs, setLegs] = useState<Leg[]>([]);
@@ -71,12 +71,15 @@ export default function CourseView({ course }: CourseViewProps) {
   const [respMsg, setRespMsg] = useState("");
   const [submitErr, setSubmitErr] = useState("");
 
+  // 선택한 장소들을 선택 순서대로 수집
   const pickedPlaces = useMemo<Place[]>(() => {
     const out: Place[] = [];
     for (const st of stops) {
-      const name = selected[st.id];
-      const p = name ? st.places.find((pl) => pl.name === name) : null;
-      if (p) out.push(p);
+      const names = selected[st.id] || [];
+      for (const name of names) {
+        const p = st.places.find((pl) => pl.name === name);
+        if (p) out.push(p);
+      }
     }
     return out;
   }, [selected, stops]);
@@ -114,16 +117,24 @@ export default function CourseView({ course }: CourseViewProps) {
     if (open) fetchRoute();
   }, [open, mode, fetchRoute]);
 
-  function pick(stopId: string, name: string) {
-    setSelected((prev) => ({ ...prev, [stopId]: prev[stopId] === name ? null : name }));
+  function togglePlace(stopId: string, name: string) {
+    setSelected((prev) => {
+      const current = prev[stopId] || [];
+      const isSelected = current.includes(name);
+      return {
+        ...prev,
+        [stopId]: isSelected ? current.filter((n) => n !== name) : [...current, name],
+      };
+    });
   }
 
   const mapLegs: MapLeg[] = legs.map((l) => ({ geometry: l.geometry, estimated: l.estimated }));
 
   async function copyCourse() {
     const lines = stops.map((st, i) => {
-      const n = selected[st.id] || "미정";
-      return `${i + 1}. ${st.label} · ${n}`;
+      const names = selected[st.id] || [];
+      const picked = names.length > 0 ? names.join(", ") : "미정";
+      return `${i + 1}. ${st.label} · ${picked}`;
     });
     const txt = `${course.title}\n${lines.join("\n")}`;
     try {
@@ -135,10 +146,12 @@ export default function CourseView({ course }: CourseViewProps) {
 
   async function submitResponse() {
     setSubmitErr("");
-    const picks: Record<string, string> = {};
+    const picks: Record<string, string[]> = {};
     for (const st of stops) {
-      const n = selected[st.id];
-      if (n) picks[st.id] = n;
+      const names = selected[st.id];
+      if (names && names.length > 0) {
+        picks[st.id] = names;
+      }
     }
     if (Object.keys(picks).length === 0) {
       setSubmitErr("장소를 먼저 골라줘.");
@@ -162,7 +175,7 @@ export default function CourseView({ course }: CourseViewProps) {
     }
   }
 
-  const courseDone = stops.every((st) => selected[st.id]);
+  const courseDone = stops.every((st) => (selected[st.id] || []).length > 0);
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 18px 110px" }}>
@@ -208,8 +221,8 @@ export default function CourseView({ course }: CourseViewProps) {
           stop={st}
           no={idx + 1}
           slug={course.slug}
-          selectedName={selected[st.id]}
-          onPick={(name) => pick(st.id, name)}
+          selectedNames={selected[st.id] || []}
+          onToggle={(name) => togglePlace(st.id, name)}
           onPlaceAdded={(place) => handleAddPlace(st.id, place)}
         />
       ))}
@@ -244,19 +257,14 @@ export default function CourseView({ course }: CourseViewProps) {
               }}
             >
               {stops.map((st, i) => {
-                const n = selected[st.id];
+                const names = selected[st.id] || [];
+                const picked = names.length > 0 ? names.join(", ") : "미정";
                 return (
                   <span key={st.id}>
                     {i > 0 && <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}> → </span>}
-                    {n ? (
-                      <span>
-                        {st.emoji} {n}
-                      </span>
-                    ) : (
-                      <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
-                        {st.emoji} {st.label}?
-                      </span>
-                    )}
+                    <span>
+                      {st.emoji} {picked}
+                    </span>
                   </span>
                 );
               })}
@@ -326,16 +334,20 @@ export default function CourseView({ course }: CourseViewProps) {
                 gap: 8,
               }}
             >
-              {stops.map((st) => (
-                <div key={st.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
-                  <span style={{ color: "var(--ink-soft)" }}>
-                    {st.emoji} {st.label}
-                  </span>
-                  <span style={{ fontWeight: 700, color: selected[st.id] ? "var(--wine)" : "var(--ink-soft)" }}>
-                    {selected[st.id] || "미정"}
-                  </span>
-                </div>
-              ))}
+              {stops.map((st) => {
+                const names = selected[st.id] || [];
+                const picked = names.length > 0 ? names.join(", ") : "미정";
+                return (
+                  <div key={st.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+                    <span style={{ color: "var(--ink-soft)" }}>
+                      {st.emoji} {st.label}
+                    </span>
+                    <span style={{ fontWeight: 700, color: names.length > 0 ? "var(--wine)" : "var(--ink-soft)" }}>
+                      {picked}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             <input className="field" aria-label="이름" placeholder="이름 (선택)" value={respName} onChange={(e) => setRespName(e.target.value)} style={{ marginBottom: 10 }} />
@@ -424,6 +436,7 @@ export default function CourseView({ course }: CourseViewProps) {
                       color: mode === m ? "#fff" : "var(--ink-soft)",
                     }}
                   >
+                    {mode === m ? "✓ " : ""}
                     {MODE_EMOJI[m]} {MODE_LABEL[m]}
                   </button>
                 ))}
@@ -431,38 +444,52 @@ export default function CourseView({ course }: CourseViewProps) {
             )}
 
             {/* map */}
-            {geoPoints.length > 0 ? (
-              <div style={{ marginBottom: 18 }}>
-                <CourseMap points={geoPoints} legs={mapLegs} />
+            <CourseMap legs={mapLegs} points={geoPoints} />
+
+            {/* route info */}
+            {geoPoints.length < 2 ? (
+              <div style={{ textAlign: "center", color: "var(--ink-soft)", fontSize: 13, margin: "14px 0" }}>
+                장소를 2개 이상 선택하면 동선이 표시돼요
               </div>
             ) : (
-              <div
-                style={{
-                  height: 110,
-                  borderRadius: 16,
-                  border: "1px dashed var(--line)",
-                  background: "#faf3ec",
-                  display: "grid",
-                  placeItems: "center",
-                  textAlign: "center",
-                  color: "var(--ink-soft)",
-                  fontSize: 13,
-                  marginBottom: 18,
-                  padding: "0 20px",
-                }}
-              >
-                장소를 고르면 여기에 지도와 동선이 표시돼요 🗺️
-              </div>
+              <>
+                {legs.length > 0 && (
+                  <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+                    {legs.map((leg, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--ink-soft)" }}>
+                        <span>
+                          {geoPoints[i]?.name} → {geoPoints[i + 1]?.name}
+                        </span>
+                        <span style={{ fontWeight: 700, color: "var(--wine)" }}>
+                          {fmtDist(leg.distance)} · {fmtDur(leg.duration)}
+                          {leg.estimated && " (예상)"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {geoPoints.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <a
+                      href={naverDirUrl(geoPoints.map((p) => ({ lat: p.lat, lng: p.lng })))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-ghost"
+                      style={{ width: "100%", textAlign: "center", textDecoration: "none" }}
+                    >
+                      네이버 지도에서 보기 →
+                    </a>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* timeline */}
-            <Timeline stops={stops} selected={selected} legs={legs} mode={mode} routing={routing} />
-
-            <div style={{ display: "flex", gap: 9, marginTop: 6 }}>
+            <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={copyCourse}>
-                {copied ? "복사됐어 ✓" : "코스 복사"}
+                {copied ? "복사됨 ✓" : "📋 복사"}
               </button>
-              <button className="btn btn-wine" style={{ flex: 1 }} onClick={() => setOpen(false)}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setOpen(false)}>
                 닫기
               </button>
             </div>
@@ -473,139 +500,107 @@ export default function CourseView({ course }: CourseViewProps) {
   );
 }
 
-/* ---------- stop section ---------- */
 function StopSection({
   stop,
   no,
   slug,
-  selectedName,
-  onPick,
+  selectedNames,
+  onToggle,
   onPlaceAdded,
 }: {
   stop: Stop;
   no: number;
   slug: string;
-  selectedName: string | null;
-  onPick: (name: string) => void;
+  selectedNames: string[];
+  onToggle: (name: string) => void;
   onPlaceAdded: (place: Place) => void;
 }) {
-  const pickable = stop.places.length > 1;
-  return (
-    <section style={{ padding: "10px 0 4px" }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, margin: "22px 2px 4px" }}>
-        <span
-          className="serif"
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: "#fff",
-            background: "var(--wine)",
-            width: 30,
-            height: 30,
-            borderRadius: "50%",
-            display: "grid",
-            placeItems: "center",
-            flex: "none",
-          }}
-        >
-          {no}
-        </span>
-        <span style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.02em" }}>
-          {stop.emoji} {stop.label}
-        </span>
-      </div>
-      <div style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 2px 16px 42px" }}>
-        {pickable ? (
-          <>
-            {stop.places.length}곳 중에 골라줘 <span style={{ color: "var(--wine-2)", fontWeight: 700 }}>— 골라줘!</span>
-          </>
-        ) : (
-          "✓ 이 코스에 포함된 곳"
-        )}
-      </div>
-      {stop.places.map((p) => (
-        <PlaceCard key={p.name + p.placeId} place={p} selected={selectedName === p.name} canPick={pickable} onPick={() => onPick(p.name)} />
-      ))}
-      <AddPlaceForm slug={slug} stopId={stop.id} stopLabel={stop.label} onAdded={onPlaceAdded} />
-    </section>
-  );
-}
-
-function AddPlaceForm({
-  slug,
-  stopId,
-  stopLabel,
-  onAdded,
-}: {
-  slug: string;
-  stopId: string;
-  stopLabel: string;
-  onAdded: (place: Place) => void;
-}) {
-  const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [armed, setArmed] = useState(false);
 
   async function add() {
     setErr("");
     if (!url.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/courses/${slug}/places`, {
+      const res = await fetch("/api/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stopId, url: url.trim() }),
+        body: JSON.stringify({ url: url.trim() }),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j.error || "추가하지 못했어요.");
-      onAdded(j.place as Place);
+      if (!res.ok) throw new Error(j.error || "불러오기 실패");
+      onPlaceAdded(j.place as Place);
       setUrl("");
-      setOpen(false);
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "추가하지 못했어요.");
+      setErr(e instanceof Error ? e.message : "불러오기에 실패했어요.");
     } finally {
       setLoading(false);
     }
   }
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        style={{
-          width: "100%",
-          border: "1.5px dashed var(--line)",
-          background: "transparent",
-          color: "var(--wine)",
-          borderRadius: 14,
-          padding: "13px",
-          fontSize: 14,
-          fontWeight: 700,
-          fontFamily: "inherit",
-          cursor: "pointer",
-          marginBottom: 20,
-        }}
-      >
-        ＋ 「{stopLabel}」에 다른 곳 추가하기
-      </button>
-    );
-  }
-
   return (
-    <div
-      style={{
-        border: "1px solid var(--line)",
-        background: "#fff",
-        borderRadius: 14,
-        padding: 14,
-        marginBottom: 20,
-      }}
-    >
-      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--wine)", marginBottom: 8 }}>
-        「{stopLabel}」에 가고 싶은 곳 추가
+    <section className="card" style={{ padding: 16, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <span style={{ fontWeight: 800, color: "var(--wine)", fontSize: 16, flex: "none" }}>{no}</span>
+        <h2 style={{ fontWeight: 800, fontSize: 18, color: "var(--wine)", margin: 0, flex: 1 }}>
+          {stop.emoji} {stop.label}
+        </h2>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+
+      {/* places list with multi-select */}
+      {stop.places.length > 0 && (
+        <div style={{ marginBottom: 12, display: "grid", gap: 8 }}>
+          {stop.places.map((p) => {
+            const isSelected = selectedNames.includes(p.name);
+            return (
+              <button
+                key={p.placeId}
+                onClick={() => onToggle(p.name)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: isSelected ? "2px solid var(--wine)" : "1px solid var(--line)",
+                  background: isSelected ? "rgba(206,20,35,.08)" : "#fff",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "all 0.2s",
+                }}
+              >
+                {p.images[0] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.images[0]} alt={p.name} style={{ width: 46, height: 46, borderRadius: 10, objectFit: "cover", flex: "none" }} />
+                ) : (
+                  <div style={{ width: 46, height: 46, borderRadius: 10, background: "#efe7da", display: "grid", placeItems: "center", flex: "none", fontSize: 20 }}>
+                    {p.emoji}
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--ink)" }}>
+                    {p.name}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                    {p.emoji} {p.category}
+                  </div>
+                </div>
+                {isSelected && (
+                  <div style={{ flex: "none", width: 24, height: 24, borderRadius: "50%", background: "var(--wine)", color: "#fff", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700 }}>
+                    ✓
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* add place input */}
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
         <input
           className="field"
           style={{ flex: 1 }}
@@ -616,333 +611,12 @@ function AddPlaceForm({
           onKeyDown={(e) => {
             if (e.key === "Enter") add();
           }}
-          autoFocus
         />
         <button className="btn btn-wine" style={{ flex: "none", padding: "0 16px" }} onClick={add} disabled={loading}>
           {loading ? "…" : "추가"}
         </button>
       </div>
       {err && <div style={{ color: "var(--wine-2)", fontSize: 12.5, marginTop: 6 }}>{err}</div>}
-      <button
-        onClick={() => {
-          setOpen(false);
-          setErr("");
-        }}
-        style={{ background: "none", border: "none", color: "var(--ink-soft)", fontSize: 12.5, cursor: "pointer", marginTop: 8, padding: 0 }}
-      >
-        취소
-      </button>
-    </div>
-  );
-}
-
-/* ---------- place card ---------- */
-function PlaceCard({
-  place,
-  selected,
-  canPick,
-  onPick,
-}: {
-  place: Place;
-  selected: boolean;
-  canPick: boolean;
-  onPick: () => void;
-}) {
-  return (
-    <article className={`card${selected ? " selected" : ""}`} style={{ marginBottom: 20, position: "relative" }}>
-      {selected && (
-        <span
-          style={{
-            position: "absolute",
-            top: 14,
-            left: 14,
-            zIndex: 3,
-            background: "var(--wine-2)",
-            color: "#fff",
-            fontSize: 12,
-            fontWeight: 700,
-            padding: "6px 12px",
-            borderRadius: 999,
-          }}
-        >
-          ✓ 선택됨
-        </span>
-      )}
-      {place.images.length > 0 && (
-        <div style={{ position: "relative" }}>
-          <div
-            className="hide-scroll"
-            style={{
-              display: "flex",
-              overflowX: "auto",
-              scrollSnapType: "x mandatory",
-              aspectRatio: "5 / 3.4",
-              background: "#efe7da",
-            }}
-          >
-            {place.images.map((src, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={i}
-                src={src}
-                alt={place.name}
-                loading="lazy"
-                style={{ width: "100%", height: "100%", flex: "0 0 100%", objectFit: "cover", scrollSnapAlign: "center" }}
-              />
-            ))}
-          </div>
-          {place.images.length > 1 && (
-            <span
-              style={{
-                position: "absolute",
-                bottom: 12,
-                left: 12,
-                background: "rgba(20,8,12,.55)",
-                color: "#fff",
-                fontSize: 11,
-                fontWeight: 600,
-                padding: "4px 10px",
-                borderRadius: 999,
-              }}
-            >
-              ← 사진 {place.images.length}장
-            </span>
-          )}
-        </div>
-      )}
-      <div style={{ padding: "18px 18px 16px" }}>
-        <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.02em" }}>{place.name}</div>
-        <div style={{ fontSize: 13, color: "var(--gold-deep)", fontWeight: 700, marginTop: 2 }}>
-          {place.emoji} {place.category}
-        </div>
-        {(place.visitor || place.blog) && (
-          <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 8, display: "flex", gap: 12 }}>
-            {place.visitor && (
-              <span>
-                ⭐ 방문자 <b style={{ color: "var(--wine)" }}>{place.visitor}</b>
-              </span>
-            )}
-            {place.blog && (
-              <span>
-                ✍️ 블로그 <b style={{ color: "var(--wine)" }}>{place.blog}</b>
-              </span>
-            )}
-          </div>
-        )}
-        {place.micro && (
-          <div
-            className="serif"
-            style={{
-              margin: "14px 0",
-              padding: "12px 14px",
-              borderRadius: 14,
-              background: "linear-gradient(180deg,#fdf3ef,#fcf8f1)",
-              border: "1px solid var(--line)",
-              color: "var(--wine)",
-              fontSize: 14.5,
-            }}
-          >
-            “{place.micro}”
-          </div>
-        )}
-        {place.keywords.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "12px 0 14px" }}>
-            {place.keywords.map((k) => (
-              <span key={k} className="tag">
-                #{k}
-              </span>
-            ))}
-          </div>
-        )}
-        {place.menu.length > 0 && (
-          <div style={{ borderTop: "1px dashed var(--line)", paddingTop: 13, marginBottom: 4 }}>
-            <h4 style={{ margin: "0 0 8px", fontSize: 12, letterSpacing: ".06em", color: "var(--ink-soft)", fontWeight: 700 }}>
-              메뉴 하이라이트
-            </h4>
-            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexWrap: "wrap", gap: "6px 14px" }}>
-              {place.menu.map((m) => (
-                <li key={m} style={{ fontSize: 13.5, position: "relative", paddingLeft: 13 }}>
-                  <span style={{ position: "absolute", left: 0, top: 9, width: 5, height: 5, borderRadius: "50%", background: "var(--gold)" }} />
-                  {m}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <div style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "14px 0 16px", display: "grid", gap: 5 }}>
-          {place.hours && <div>🕒 {place.hours}</div>}
-          {place.address && <div>📍 {place.address}</div>}
-        </div>
-        <div style={{ display: "flex", gap: 9 }}>
-          <a className="btn btn-naver" style={{ flex: 1 }} href={place.placeUrl} target="_blank" rel="noopener noreferrer">
-            N 네이버에서 보기
-          </a>
-          {canPick && (
-            <button
-              className={`btn ${selected ? "btn-wine" : "btn-ghost"}`}
-              style={{ flex: 1 }}
-              onClick={onPick}
-            >
-              {selected ? "✓ 선택함" : "이 곳 고르기"}
-            </button>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-/* ---------- timeline ---------- */
-function Timeline({
-  stops,
-  selected,
-  legs,
-  mode,
-  routing,
-}: {
-  stops: Stop[];
-  selected: Record<string, string | null>;
-  legs: Leg[];
-  mode: string;
-  routing: boolean;
-}) {
-  // build ordered node list
-  const nodes = stops.map((st) => {
-    const name = selected[st.id];
-    const place = name ? st.places.find((p) => p.name === name) ?? null : null;
-    return { st, place };
-  });
-
-  // legs correspond to consecutive picked places with coords
-  const geoNodes = nodes.filter((n) => n.place && n.place.lat != null && n.place.lng != null);
-  let legCursor = 0;
-
-  return (
-    <div style={{ paddingLeft: 6, marginBottom: 4 }}>
-      {nodes.map((n, i) => {
-        const isGeo = !!(n.place && n.place.lat != null && n.place.lng != null);
-        // find the leg AFTER this node (between this geo node and next geo node)
-        let legEl: React.ReactNode = null;
-        if (i < nodes.length - 1) {
-          const next = nodes[i + 1];
-          const bothGeo = isGeo && !!(next.place && next.place.lat != null && next.place.lng != null);
-          if (bothGeo) {
-            const leg = legs[legCursor];
-            legCursor++;
-            const dirUrl = naverDirUrl(
-              { name: n.place!.name, lat: n.place!.lat, lng: n.place!.lng },
-              { name: next.place!.name, lat: next.place!.lat, lng: next.place!.lng },
-              mode
-            );
-            legEl = (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "-10px 0 14px 40px", fontSize: 11.5, color: "var(--ink-soft)" }}>
-                <span>
-                  {MODE_EMOJI[mode]}{" "}
-                  {routing
-                    ? "경로 계산 중…"
-                    : leg
-                    ? `${MODE_LABEL[mode]} 약 ${fmtDur(leg.duration)} · ${leg.estimated ? "약 " : ""}${fmtDist(leg.distance)}`
-                    : "이동"}
-                </span>
-                <a
-                  href={dirUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    fontWeight: 700,
-                    color: "var(--wine)",
-                    textDecoration: "none",
-                    background: "#fbeae6",
-                    border: "1px solid #f3d3cb",
-                    borderRadius: 8,
-                    padding: "4px 9px",
-                  }}
-                >
-                  🧭 네이버로 길찾기
-                </a>
-              </div>
-            );
-          } else {
-            legEl = <div style={{ margin: "-10px 0 14px 40px", fontSize: 11.5, color: "var(--ink-soft)" }}>{MODE_EMOJI[mode]} 이동</div>;
-          }
-        }
-
-        return (
-          <div key={n.st.id}>
-            <div style={{ position: "relative", padding: "0 0 4px 40px" }}>
-              <span
-                className="serif"
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  top: 0,
-                  width: 30,
-                  height: 30,
-                  borderRadius: "50%",
-                  background: "var(--wine)",
-                  color: "#fff",
-                  fontWeight: 700,
-                  display: "grid",
-                  placeItems: "center",
-                  fontSize: 14,
-                }}
-              >
-                {i + 1}
-              </span>
-              <div
-                className="card"
-                style={{
-                  padding: "13px 15px",
-                  marginBottom: 14,
-                  ...(n.place ? {} : { background: "#faf3ec", borderStyle: "dashed" }),
-                }}
-              >
-                <div style={{ fontSize: 11, letterSpacing: ".12em", fontWeight: 700, color: "var(--gold-deep)" }}>
-                  {n.st.emoji} {n.st.label}
-                </div>
-                {n.place ? (
-                  <>
-                    <div style={{ fontSize: 17, fontWeight: 800, margin: "2px 0" }}>{n.place.name}</div>
-                    <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>
-                      {n.place.category}
-                      {n.place.hours ? ` · ${n.place.hours}` : ""}
-                    </div>
-                    <a
-                      href={n.place.placeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        marginTop: 9,
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        color: "#03c75a",
-                        textDecoration: "none",
-                        background: "#eafaf0",
-                        border: "1px solid #c8eed7",
-                        borderRadius: 9,
-                        padding: "6px 11px",
-                      }}
-                    >
-                      N 네이버 지도
-                    </a>
-                  </>
-                ) : (
-                  <div style={{ fontSize: 14, color: "var(--ink-soft)", fontWeight: 600, marginTop: 2 }}>아직 안 골랐어요</div>
-                )}
-              </div>
-            </div>
-            {legEl}
-          </div>
-        );
-      })}
-      {/* avoid unused warning for geoNodes */}
-      <span style={{ display: "none" }}>{geoNodes.length}</span>
-    </div>
+    </section>
   );
 }

@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     const body = (await req.json()) as {
       name?: string;
       message?: string;
-      picks?: Record<string, string>;
+      picks?: Record<string, string[]>;
     };
     const picks = body.picks && typeof body.picks === "object" ? body.picks : {};
     if (Object.keys(picks).length === 0) {
