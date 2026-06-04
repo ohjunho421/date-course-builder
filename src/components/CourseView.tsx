@@ -6,6 +6,7 @@ import type { Course, Place, Stop } from "@/lib/types";
 import { MODE_LABEL, MODE_EMOJI } from "@/lib/types";
 import { fmtDist, fmtDur, naverDirUrl } from "@/lib/format";
 import type { MapLeg, MapPoint } from "./CourseMap";
+import BrandLogo from "./BrandLogo";
 
 const CourseMap = dynamic(() => import("./CourseMap"), {
   ssr: false,
@@ -167,16 +168,7 @@ export default function CourseView({ course }: CourseViewProps) {
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 18px 110px" }}>
       {/* hero */}
       <header style={{ textAlign: "center", padding: "48px 6px 22px" }}>
-        <div
-          style={{
-            fontSize: 12,
-            letterSpacing: ".3em",
-            fontWeight: 700,
-            color: "var(--wine-2)",
-          }}
-        >
-          🌙 달에게 가는 길
-        </div>
+        <BrandLogo height={40} />
         <h1
           className="serif"
           style={{ fontSize: 34, lineHeight: 1.22, margin: "12px 0 8px", color: "var(--wine)", fontWeight: 700 }}
