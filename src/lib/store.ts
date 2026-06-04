@@ -107,7 +107,7 @@ export async function addPlaceToStop(
 /* ---------- responses ---------- */
 export async function createResponse(
   slug: string,
-  input: { name: string; message: string; picks: Record<string, string> }
+  input: { name: string; message: string; picks: Record<string, string[]> }
 ): Promise<CourseResponse> {
   const resp: CourseResponse = {
     id: nano(),
@@ -148,7 +148,7 @@ export async function getResponses(slug: string): Promise<CourseResponse[]> {
       id: r.id,
       name: r.name ?? "",
       message: r.message ?? "",
-      picks: r.picks as unknown as Record<string, string>,
+      picks: r.picks as unknown as Record<string, string[]>,
       createdAt: r.createdAt.toISOString(),
     }));
   }
