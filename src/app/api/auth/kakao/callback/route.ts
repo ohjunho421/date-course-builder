@@ -4,15 +4,14 @@ import { signSession, SESSION_COOKIE, type SessionUser } from "@/lib/auth";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  const origin = req.nextUrl.origin;
+  // 배포 환경에서는 고정 도메인 사용(프록시 뒤 origin이 internal host로 잡히는 문제 방지)
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || req.nextUrl.origin;
   const code = req.nextUrl.searchParams.get("code");
   const key = process.env.KAKAO_REST_KEY;
   if (!code || !key) {
-    return NextResponse.redirect(`${origin}/?login=fail`);
+    return NextResponse.redirect(`${baseUrl}/?login=fail`);
   }
 
-  // 배포 환경에서는 고정된 도메인 사용, 로컬에서는 현재 origin 사용
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || origin;
   const redirectUri = `${baseUrl}/api/auth/kakao/callback`;
   const clientSecret = process.env.KAKAO_CLIENT_SECRET || "";
 
@@ -31,7 +30,16 @@ export async function GET(req: NextRequest) {
     });
     const token = await tokenRes.json();
     if (!tokenRes.ok || !token.access_token) {
-      return NextResponse.redirect(`${origin}/?login=fail`);
+      console.error(
+        "[kakao] token exchange failed",
+        tokenRes.status,
+        JSON.stringify(token),
+        "redirectUri=",
+        redirectUri,
+        "hasSecret=",
+        !!clientSecret
+      );
+      return NextResponse.redirect(`${baseUrl}/?login=fail`);
     }
 
     const meRes = await fetch("https://kapi.kakao.com/v2/user/me", {
@@ -39,6 +47,11 @@ export async function GET(req: NextRequest) {
       cache: "no-store",
     });
     const me = await meRes.json();
+    if (!meRes.ok || !me?.id) {
+      console.error("[kakao] user fetch failed", meRes.status, JSON.stringify(me));
+      return NextResponse.redirect(`${baseUrl}/?login=fail`);
+    }
+
     const profile = me?.kakao_account?.profile ?? {};
     const user: SessionUser = {
       id: `kakao:${me.id}`,
@@ -50,7 +63,7 @@ export async function GET(req: NextRequest) {
     const next = req.cookies.get("dgg_oauth_next")?.value;
     const dest = next && next.startsWith("/") ? next : "/history";
 
-    const res = NextResponse.redirect(`${origin}${dest}`);
+    const res = NextResponse.redirect(`${baseUrl}${dest}`);
     res.cookies.set(SESSION_COOKIE, jwt, {
       httpOnly: true,
       secure: baseUrl.startsWith("https"),
@@ -60,7 +73,8 @@ export async function GET(req: NextRequest) {
     });
     res.cookies.set("dgg_oauth_next", "", { maxAge: 0, path: "/" });
     return res;
-  } catch {
-    return NextResponse.redirect(`${origin}/?login=fail`);
+  } catch (e) {
+    console.error("[kakao] callback error", e);
+    return NextResponse.redirect(`${baseUrl}/?login=fail`);
   }
 }
