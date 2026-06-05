@@ -71,15 +71,16 @@ export default function CourseView({ course }: CourseViewProps) {
   const [respMsg, setRespMsg] = useState("");
   const [submitErr, setSubmitErr] = useState("");
 
-  // 선택한 장소들을 선택 순서대로 수집
+  // 동선은 단계마다 "한 곳"(선택된 후보 중 대표 1곳)만 이어서 계산한다.
+  // 한 단계에서 여러 후보를 골라도 경로가 후보 전체를 지그재그로 경유하지 않도록 함.
   const pickedPlaces = useMemo<Place[]>(() => {
     const out: Place[] = [];
     for (const st of stops) {
       const names = selected[st.id] || [];
-      for (const name of names) {
-        const p = st.places.find((pl) => pl.name === name);
-        if (p) out.push(p);
-      }
+      if (names.length === 0) continue;
+      // 단계 내 표시 순서 기준 첫 번째 선택 후보를 대표로 사용
+      const p = st.places.find((pl) => names.includes(pl.name));
+      if (p) out.push(p);
     }
     return out;
   }, [selected, stops]);
@@ -176,6 +177,7 @@ export default function CourseView({ course }: CourseViewProps) {
   }
 
   const courseDone = stops.every((st) => (selected[st.id] || []).length > 0);
+  const multiPicked = stops.some((st) => (selected[st.id] || []).length > 1);
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 18px 110px" }}>
@@ -445,6 +447,12 @@ export default function CourseView({ course }: CourseViewProps) {
 
             {/* map */}
             <CourseMap legs={mapLegs} points={geoPoints} />
+
+            {multiPicked && (
+              <div style={{ textAlign: "center", color: "var(--ink-soft)", fontSize: 12, marginTop: 8 }}>
+                한 단계에서 여러 곳을 골랐을 땐 첫 번째 장소 기준으로 동선을 보여줘요
+              </div>
+            )}
 
             {/* route info */}
             {geoPoints.length < 2 ? (

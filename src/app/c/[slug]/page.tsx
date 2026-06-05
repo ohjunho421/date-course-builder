@@ -29,7 +29,7 @@ export default async function CoursePage({ params, searchParams }: PageProps) {
   const isOwner = !!course.ownerToken && course.ownerToken === owner;
   return (
     <>
-      <ShareBar slug={slug} ownerToken={isOwner ? owner : undefined} />
+      <ShareBar slug={slug} ownerToken={isOwner ? owner : undefined} title={course.title} />
       <CourseView course={course} />
     </>
   );

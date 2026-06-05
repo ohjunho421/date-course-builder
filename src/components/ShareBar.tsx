@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import KakaoShareButton from "./KakaoShareButton";
 
 interface ShareBarProps {
   slug: string;
   ownerToken?: string; // present only for the creator viewing their just-made course
+  title?: string;
 }
 
-export default function ShareBar({ slug, ownerToken }: ShareBarProps) {
+export default function ShareBar({ slug, ownerToken, title = "달에게 가는 길" }: ShareBarProps) {
   const [copied, setCopied] = useState(false);
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}/c/${slug}` : `/c/${slug}`;
@@ -49,6 +51,13 @@ export default function ShareBar({ slug, ownerToken }: ShareBarProps) {
           <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 12px" }}>
             아래 링크를 상대에게 보내면, 상대가 직접 골라서 보낼 수 있어요.
           </p>
+          <KakaoShareButton
+            url={shareUrl}
+            title={title}
+            description="같이 갈 코스 골라줘 🌙 — 마음에 드는 곳을 직접 골라봐요"
+            style={{ width: "100%", padding: "12px 0", marginBottom: 8 }}
+            label="💬 카카오톡으로 공유"
+          />
           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
             <button className="btn btn-ghost" style={{ flex: 1, padding: "11px 0" }} onClick={copyLink}>
               {copied ? "복사됨 ✓" : "🔗 링크 복사"}
