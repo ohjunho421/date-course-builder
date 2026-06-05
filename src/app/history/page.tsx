@@ -69,14 +69,14 @@ export default async function HistoryPage() {
 
   return (
     <Shell>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
-        <div>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 22 }}>
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 12, letterSpacing: ".2em", fontWeight: 700, color: "var(--wine-2)" }}>MY COURSES</div>
-          <h1 className="serif" style={{ fontSize: 26, color: "var(--wine)", fontWeight: 700, margin: "6px 0 0" }}>
+          <h1 className="serif" style={{ fontSize: 24, color: "var(--wine)", fontWeight: 700, margin: "6px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {user.name}님의 코스
           </h1>
         </div>
-        <Link href="/" className="btn btn-wine" style={{ padding: "10px 14px", fontSize: 14 }}>
+        <Link href="/" className="btn btn-wine" style={{ flex: "none", padding: "10px 14px", fontSize: 14, whiteSpace: "nowrap" }}>
           + 새 코스
         </Link>
       </header>
