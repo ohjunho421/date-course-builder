@@ -1,6 +1,5 @@
 import { getSession, kakaoConfigured } from "@/lib/auth";
 import Builder from "@/components/Builder";
-import AuthNav from "@/components/AuthNav";
 import BrandLogo from "@/components/BrandLogo";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +19,6 @@ export default async function Home() {
   if (!kakaoConfigured()) {
     return (
       <>
-        <AuthNav />
         <div style={{ maxWidth: 600, margin: "0 auto", padding: "80px 24px", textAlign: "center" }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>⚙️</div>
           <h1 className="serif" style={{ fontSize: 24, color: "var(--wine)", marginBottom: 8 }}>
@@ -54,10 +52,5 @@ export default async function Home() {
     );
   }
 
-  return (
-    <>
-      <AuthNav />
-      <Builder />
-    </>
-  );
+  return <Builder />;
 }

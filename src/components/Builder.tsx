@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import BrandLogo from "./BrandLogo";
 import { nanoid } from "nanoid";
 import type { Place, Stop } from "@/lib/types";
 import { MODE_LABEL, MODE_EMOJI } from "@/lib/types";
@@ -145,9 +144,8 @@ export default function Builder() {
 
   return (
     <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 18px 60px" }}>
-      <header style={{ textAlign: "center", padding: "40px 6px 14px" }}>
-        <BrandLogo height={58} />
-        <h1 className="serif" style={{ fontSize: 26, margin: "14px 0 8px", color: "var(--wine)", fontWeight: 700, lineHeight: 1.2 }}>
+      <header style={{ textAlign: "center", padding: "32px 6px 14px" }}>
+        <h1 className="serif" style={{ fontSize: 26, margin: "0 0 8px", color: "var(--wine)", fontWeight: 700, lineHeight: 1.2 }}>
           데이트 코스 만들기
         </h1>
         <p style={{ color: "var(--ink-soft)", fontSize: 15, maxWidth: 380, margin: "0 auto" }}>

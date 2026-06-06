@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { getSession, kakaoConfigured } from "@/lib/auth";
+import SiteHeader from "@/components/SiteHeader";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -13,9 +15,11 @@ export const metadata: Metadata = {
     "네이버 지도 링크만 넣으면, 사진·리뷰·지도 동선까지 담긴 데이트 코스 페이지가 완성됩니다. 상대에게 링크 하나로 공유하세요.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const user = await getSession();
+
   return (
     <html lang="ko" className="h-full">
       <head>
@@ -32,7 +36,10 @@ export default function RootLayout({
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <SiteHeader userName={user?.name ?? null} kakaoOn={kakaoConfigured()} />
+        {children}
+      </body>
     </html>
   );
 }
