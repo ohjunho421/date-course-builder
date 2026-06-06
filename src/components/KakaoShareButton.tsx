@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useEffect, useState } from "react";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare global {
@@ -11,22 +11,22 @@ declare global {
 
 const SDK_SRC = "https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js";
 
-function loadKakaoSdk(): Promise<void> {
+function ensureSdkLoaded(): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (typeof window === "undefined") return reject(new Error("no window"));
     if (window.Kakao) return resolve();
     const existing = document.getElementById("kakao-sdk") as HTMLScriptElement | null;
     if (existing) {
       existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("kakao sdk load error")));
+      existing.addEventListener("error", () => reject(new Error("sdk error")));
       return;
     }
     const s = document.createElement("script");
     s.id = "kakao-sdk";
     s.src = SDK_SRC;
     s.async = true;
-    s.crossOrigin = "anonymous";
     s.onload = () => resolve();
-    s.onerror = () => reject(new Error("kakao sdk load error"));
+    s.onerror = () => reject(new Error("sdk error"));
     document.head.appendChild(s);
   });
 }
@@ -49,42 +49,70 @@ export default function KakaoShareButton({
   label = "💬 카카오톡 공유",
 }: KakaoShareButtonProps) {
   const jsKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
-  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const share = useCallback(async () => {
+  // SDK를 미리 로드/초기화해 둔다 — 클릭 시 동기적으로 공유를 띄워 팝업 차단을 피함
+  useEffect(() => {
     if (!jsKey) return;
-    setBusy(true);
-    try {
-      await loadKakaoSdk();
-      const Kakao = window.Kakao;
-      if (!Kakao) return;
-      if (!Kakao.isInitialized()) Kakao.init(jsKey);
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      Kakao.Share.sendDefault({
-        objectType: "feed",
-        content: {
-          title,
-          description: description || "같이 갈 코스 골라줘 🌙",
-          imageUrl: imageUrl || `${origin}/logo-card.png`,
-          link: { mobileWebUrl: url, webUrl: url },
-        },
-        buttons: [
-          { title: "코스 보고 고르기", link: { mobileWebUrl: url, webUrl: url } },
-        ],
+    let cancelled = false;
+    ensureSdkLoaded()
+      .then(() => {
+        if (cancelled) return;
+        try {
+          if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(jsKey);
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {
+        /* SDK 로드 실패 — 클릭 시 링크 복사로 폴백 */
       });
-    } catch {
-      /* SDK 차단/도메인 미등록 등 — 조용히 무시 */
-    } finally {
-      setBusy(false);
+    return () => {
+      cancelled = true;
+    };
+  }, [jsKey]);
+
+  function copyFallback() {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1800);
+        })
+        .catch(() => {});
     }
-  }, [jsKey, url, title, description, imageUrl]);
+  }
+
+  // 동기 함수 — await 없이 사용자 제스처 안에서 바로 공유창을 연다
+  function share() {
+    const Kakao = typeof window !== "undefined" ? window.Kakao : undefined;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    if (Kakao?.isInitialized?.() && Kakao?.Share) {
+      try {
+        Kakao.Share.sendDefault({
+          objectType: "feed",
+          content: {
+            title,
+            description: description || "같이 갈 코스 골라줘 🌙",
+            imageUrl: imageUrl || `${origin}/logo-card.png`,
+            link: { mobileWebUrl: url, webUrl: url },
+          },
+          buttons: [{ title: "코스 보고 고르기", link: { mobileWebUrl: url, webUrl: url } }],
+        });
+        return;
+      } catch {
+        /* fall through to copy */
+      }
+    }
+    copyFallback();
+  }
 
   if (!jsKey) return null;
 
   return (
     <button
       onClick={share}
-      disabled={busy}
       style={{
         background: "#FEE500",
         color: "#191600",
@@ -98,7 +126,7 @@ export default function KakaoShareButton({
         ...style,
       }}
     >
-      {label}
+      {copied ? "링크 복사됨 ✓" : label}
     </button>
   );
 }
