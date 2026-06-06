@@ -47,6 +47,7 @@ export type CourseSummary = {
   stopCount: number;
   responseCount: number;
   createdAt: string;
+  role: "owner" | "received"; // 내가 만든 코스 / 받은 코스
 };
 
 export type CourseResponse = {

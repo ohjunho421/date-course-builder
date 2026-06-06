@@ -8,17 +8,30 @@ datasource db {
 }
 
 model Course {
-  id         String     @id @default(cuid())
-  slug       String     @unique
-  ownerToken String     @default("")
-  userId     String?
-  title      String
-  intro      String?
-  modes      String     @default("walk")
-  stops      Json
-  createdAt  DateTime   @default(now())
-  responses  Response[]
+  id           String              @id @default(cuid())
+  slug         String              @unique
+  ownerToken   String              @default("")
+  userId       String?
+  title        String
+  intro        String?
+  modes        String              @default("walk")
+  stops        Json
+  createdAt    DateTime            @default(now())
+  responses    Response[]
+  participants CourseParticipant[]
 
+  @@index([userId])
+}
+
+// 코스를 받은(공유 링크로 들어온) 로그인 사용자 — "받은 코스"로 히스토리에 표시
+model CourseParticipant {
+  id         String   @id @default(cuid())
+  courseSlug String
+  userId     String
+  createdAt  DateTime @default(now())
+  course     Course   @relation(fields: [courseSlug], references: [slug], onDelete: Cascade)
+
+  @@unique([courseSlug, userId])
   @@index([userId])
 }
 
