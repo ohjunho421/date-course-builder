@@ -34,7 +34,9 @@ interface CourseViewProps {
 }
 
 export default function CourseView({ course }: CourseViewProps) {
-  const modes = course.modes.length ? course.modes : ["walk"];
+  // 대중교통 제거 — 도보/차량만 노출 (과거에 생성된 코스 호환)
+  const availableModes = course.modes.filter((m) => m === "walk" || m === "car");
+  const modes = availableModes.length ? availableModes : ["walk"];
 
   // local stops state so partner-added places appear without reload
   const [stops, setStops] = useState<Stop[]>(course.stops);

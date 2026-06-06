@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       {
         title,
         intro: (body.intro || "").trim(),
-        modes: modes.filter((m) => ["walk", "car", "transit"].includes(m)),
+        modes: modes.filter((m) => ["walk", "car"].includes(m)),
         stops: validStops,
       },
       session?.id

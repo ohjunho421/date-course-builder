@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       mode: string;
       points: LatLng[];
     };
-    const m = ["walk", "car", "transit"].includes(mode) ? mode : "walk";
+    const m = ["walk", "car"].includes(mode) ? mode : "walk";
     const pts = Array.isArray(points)
       ? points.filter((p) => p && typeof p.lat === "number" && typeof p.lng === "number")
       : [];

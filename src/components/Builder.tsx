@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import type { Place, Stop } from "@/lib/types";
 import { MODE_LABEL, MODE_EMOJI } from "@/lib/types";
 
-const ALL_MODES = ["walk", "car", "transit"];
+const ALL_MODES = ["walk", "car"];
 
 function guessEmoji(label: string): string {
   const l = label;
