@@ -31,7 +31,7 @@ export default function BrandLogo({ height = 40 }: BrandLogoProps) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/logo.png"
+      src="/logo.png?v=4"
       alt="달에게 가는 길"
       onError={() => setOk(false)}
       style={{ height, width: "auto", display: "inline-block", verticalAlign: "middle" }}

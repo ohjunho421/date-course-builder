@@ -528,7 +528,9 @@ function StopSection({
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  const [armed, setArmed] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+
+  const multi = stop.places.length > 1;
 
   async function add() {
     setErr("");
@@ -544,6 +546,7 @@ function StopSection({
       if (!res.ok) throw new Error(j.error || "불러오기 실패");
       onPlaceAdded(j.place as Place);
       setUrl("");
+      setAddOpen(false);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "불러오기에 실패했어요.");
     } finally {
@@ -552,81 +555,272 @@ function StopSection({
   }
 
   return (
-    <section className="card" style={{ padding: 16, marginBottom: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <span style={{ fontWeight: 800, color: "var(--wine)", fontSize: 16, flex: "none" }}>{no}</span>
-        <h2 style={{ fontWeight: 800, fontSize: 18, color: "var(--wine)", margin: 0, flex: 1 }}>
+    <section style={{ padding: "10px 0 4px" }}>
+      {/* stop header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "22px 2px 4px" }}>
+        <span
+          className="serif"
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: "#fff",
+            background: "var(--wine)",
+            width: 30,
+            height: 30,
+            borderRadius: "50%",
+            display: "grid",
+            placeItems: "center",
+            flex: "none",
+          }}
+        >
+          {no}
+        </span>
+        <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.02em", color: "var(--ink)" }}>
           {stop.emoji} {stop.label}
-        </h2>
+        </span>
+      </div>
+      <div style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 2px 14px 40px" }}>
+        {multi ? (
+          <>
+            {stop.places.length}곳 중에 마음에 드는 곳을 골라줘{" "}
+            <span style={{ color: "var(--wine-2)", fontWeight: 700 }}>— 여러 곳도 OK</span>
+          </>
+        ) : stop.places.length === 1 ? (
+          "✓ 이 코스에 포함된 곳"
+        ) : (
+          "아직 추가된 장소가 없어요"
+        )}
       </div>
 
-      {/* places list with multi-select */}
-      {stop.places.length > 0 && (
-        <div style={{ marginBottom: 12, display: "grid", gap: 8 }}>
-          {stop.places.map((p) => {
-            const isSelected = selectedNames.includes(p.name);
-            return (
-              <button
-                key={p.placeId}
-                onClick={() => onToggle(p.name)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: isSelected ? "2px solid var(--wine)" : "1px solid var(--line)",
-                  background: isSelected ? "rgba(206,20,35,.08)" : "#fff",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  transition: "all 0.2s",
-                }}
-              >
-                {p.images[0] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.images[0]} alt={p.name} style={{ width: 46, height: 46, borderRadius: 10, objectFit: "cover", flex: "none" }} />
-                ) : (
-                  <div style={{ width: 46, height: 46, borderRadius: 10, background: "#efe7da", display: "grid", placeItems: "center", flex: "none", fontSize: 20 }}>
-                    {p.emoji}
-                  </div>
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--ink)" }}>
-                    {p.name}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-                    {p.emoji} {p.category}
-                  </div>
-                </div>
-                {isSelected && (
-                  <div style={{ flex: "none", width: 24, height: 24, borderRadius: "50%", background: "var(--wine)", color: "#fff", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700 }}>
-                    ✓
-                  </div>
-                )}
-              </button>
-            );
-          })}
+      {/* place cards */}
+      {stop.places.map((p) => (
+        <PlaceCard
+          key={p.placeId}
+          place={p}
+          selected={selectedNames.includes(p.name)}
+          onToggle={() => onToggle(p.name)}
+        />
+      ))}
+
+      {/* add place */}
+      {!addOpen ? (
+        <button
+          onClick={() => setAddOpen(true)}
+          style={{
+            width: "100%",
+            border: "1.5px dashed var(--line)",
+            background: "transparent",
+            color: "var(--wine)",
+            borderRadius: 14,
+            padding: "13px",
+            fontSize: 14,
+            fontWeight: 700,
+            fontFamily: "inherit",
+            cursor: "pointer",
+            marginBottom: 20,
+          }}
+        >
+          ＋ 「{stop.label}」에 다른 곳 추가하기
+        </button>
+      ) : (
+        <div style={{ border: "1px solid var(--line)", background: "#fff", borderRadius: 14, padding: 14, marginBottom: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--wine)", marginBottom: 8 }}>
+            「{stop.label}」에 가고 싶은 곳 추가
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              className="field"
+              style={{ flex: 1 }}
+              aria-label="네이버 지도 공유 링크"
+              placeholder="네이버 지도 공유 링크 (naver.me/...)"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") add();
+              }}
+              autoFocus
+            />
+            <button className="btn btn-wine" style={{ flex: "none", padding: "0 16px" }} onClick={add} disabled={loading}>
+              {loading ? "…" : "추가"}
+            </button>
+          </div>
+          {err && <div style={{ color: "var(--wine-2)", fontSize: 12.5, marginTop: 6 }}>{err}</div>}
+          <button
+            onClick={() => {
+              setAddOpen(false);
+              setErr("");
+            }}
+            style={{ background: "none", border: "none", color: "var(--ink-soft)", fontSize: 12.5, cursor: "pointer", marginTop: 8, padding: 0 }}
+          >
+            취소
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ---------- place card: 사진 갤러리 · 리뷰 · 간단 설명 ---------- */
+function PlaceCard({
+  place,
+  selected,
+  onToggle,
+}: {
+  place: Place;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <article className={`card${selected ? " selected" : ""}`} style={{ marginBottom: 16, position: "relative" }}>
+      {selected && (
+        <span
+          style={{
+            position: "absolute",
+            top: 14,
+            left: 14,
+            zIndex: 3,
+            background: "var(--wine-2)",
+            color: "#fff",
+            fontSize: 12,
+            fontWeight: 700,
+            padding: "6px 12px",
+            borderRadius: 999,
+          }}
+        >
+          ✓ 선택됨
+        </span>
+      )}
+
+      {/* photo gallery */}
+      {place.images.length > 0 && (
+        <div style={{ position: "relative" }}>
+          <div
+            className="hide-scroll"
+            style={{
+              display: "flex",
+              overflowX: "auto",
+              scrollSnapType: "x mandatory",
+              aspectRatio: "5 / 3.4",
+              background: "#efe7da",
+            }}
+          >
+            {place.images.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={i}
+                src={src}
+                alt={place.name}
+                loading="lazy"
+                style={{ width: "100%", height: "100%", flex: "0 0 100%", objectFit: "cover", scrollSnapAlign: "center" }}
+              />
+            ))}
+          </div>
+          {place.images.length > 1 && (
+            <span
+              style={{
+                position: "absolute",
+                bottom: 12,
+                left: 12,
+                background: "rgba(20,8,12,.55)",
+                color: "#fff",
+                fontSize: 11,
+                fontWeight: 600,
+                padding: "4px 10px",
+                borderRadius: 999,
+              }}
+            >
+              ← 사진 {place.images.length}장
+            </span>
+          )}
         </div>
       )}
 
-      {/* add place input */}
-      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-        <input
-          className="field"
-          style={{ flex: 1 }}
-          aria-label="네이버 지도 공유 링크"
-          placeholder="네이버 지도 공유 링크 (naver.me/...)"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") add();
-          }}
-        />
-        <button className="btn btn-wine" style={{ flex: "none", padding: "0 16px" }} onClick={add} disabled={loading}>
-          {loading ? "…" : "추가"}
-        </button>
+      <div style={{ padding: "18px 18px 16px" }}>
+        <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.02em", color: "var(--ink)" }}>{place.name}</div>
+        <div style={{ fontSize: 13, color: "var(--gold-deep)", fontWeight: 700, marginTop: 2 }}>
+          {place.emoji} {place.category}
+        </div>
+
+        {/* review counts */}
+        {(place.visitor || place.blog) && (
+          <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 8, display: "flex", gap: 12 }}>
+            {place.visitor && (
+              <span>
+                ⭐ 방문자 <b style={{ color: "var(--wine)" }}>{place.visitor}</b>
+              </span>
+            )}
+            {place.blog && (
+              <span>
+                ✍️ 블로그 <b style={{ color: "var(--wine)" }}>{place.blog}</b>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* one-line review */}
+        {place.micro && (
+          <div
+            className="serif"
+            style={{
+              margin: "14px 0",
+              padding: "12px 14px",
+              borderRadius: 14,
+              background: "linear-gradient(180deg,#fdf3ef,#fcf8f1)",
+              border: "1px solid var(--line)",
+              color: "var(--wine)",
+              fontSize: 14.5,
+            }}
+          >
+            “{place.micro}”
+          </div>
+        )}
+
+        {/* keyword tags */}
+        {place.keywords.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "12px 0 14px" }}>
+            {place.keywords.map((k) => (
+              <span key={k} className="tag">
+                #{k}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* menu highlights */}
+        {place.menu.length > 0 && (
+          <div style={{ borderTop: "1px dashed var(--line)", paddingTop: 13, marginBottom: 4 }}>
+            <h4 style={{ margin: "0 0 8px", fontSize: 12, letterSpacing: ".06em", color: "var(--ink-soft)", fontWeight: 700 }}>
+              메뉴 하이라이트
+            </h4>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexWrap: "wrap", gap: "6px 14px" }}>
+              {place.menu.map((m) => (
+                <li key={m} style={{ fontSize: 13.5, position: "relative", paddingLeft: 13 }}>
+                  <span style={{ position: "absolute", left: 0, top: 9, width: 5, height: 5, borderRadius: "50%", background: "var(--gold)" }} />
+                  {m}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* hours & address */}
+        {(place.hours || place.address) && (
+          <div style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "14px 0 16px", display: "grid", gap: 5 }}>
+            {place.hours && <div>🕒 {place.hours}</div>}
+            {place.address && <div>📍 {place.address}</div>}
+          </div>
+        )}
+
+        {/* actions */}
+        <div style={{ display: "flex", gap: 9, marginTop: place.hours || place.address ? 0 : 14 }}>
+          <a className="btn btn-naver" style={{ flex: 1 }} href={place.placeUrl} target="_blank" rel="noopener noreferrer">
+            N 네이버에서 보기
+          </a>
+          <button className={`btn ${selected ? "btn-wine" : "btn-ghost"}`} style={{ flex: 1 }} onClick={onToggle}>
+            {selected ? "✓ 선택함" : "이 곳 고르기"}
+          </button>
+        </div>
       </div>
-      {err && <div style={{ color: "var(--wine-2)", fontSize: 12.5, marginTop: 6 }}>{err}</div>}
-    </section>
+    </article>
   );
 }
