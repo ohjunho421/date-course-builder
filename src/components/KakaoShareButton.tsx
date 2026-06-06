@@ -95,7 +95,7 @@ export default function KakaoShareButton({
           content: {
             title,
             description: description || "같이 갈 코스 골라줘 🌙",
-            imageUrl: imageUrl || `${origin}/logo-card.png`,
+            imageUrl: imageUrl || `${origin}/logo-card.png?v=2`,
             link: { mobileWebUrl: url, webUrl: url },
           },
           buttons: [{ title: "코스 보고 고르기", link: { mobileWebUrl: url, webUrl: url } }],
