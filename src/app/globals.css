@@ -35,6 +35,19 @@ body {
   font-family: "Pretendard", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  /* 한국어 줄바꿈: 어절(단어) 중간에서 끊기지 않게 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 제목은 줄 길이를 균형있게, 본문은 고아 단어(한 단어만 남는 줄) 방지 */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
 }
 
 .serif {
