@@ -127,13 +127,14 @@ export default function LandingPage() {
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "32px 22px 64px" }}>
       {/* hero */}
       <section style={{ textAlign: "center" }}>
-        <BrandLogo height={66} />
-        <span
-          className="chip"
-          style={{ marginTop: 18, display: "inline-block", color: "var(--wine-2)" }}
-        >
-          🌙 우리 둘만의 데이트 코스
-        </span>
+        <div>
+          <BrandLogo height={66} />
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <span className="chip" style={{ color: "var(--wine-2)" }}>
+            🌙 우리 둘만의 데이트 코스
+          </span>
+        </div>
         <h1
           className="serif"
           style={{ fontSize: 28, color: "var(--wine)", fontWeight: 700, lineHeight: 1.3, margin: "14px 0 10px" }}
