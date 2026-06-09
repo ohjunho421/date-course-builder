@@ -1,5 +1,4 @@
 import { getSession, kakaoConfigured } from "@/lib/auth";
-import Builder from "@/components/Builder";
 import LandingPage from "@/components/LandingPage";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +20,7 @@ export default async function Home() {
 
   const user = await getSession();
 
-  // 로그인 전 — 로그인 랜딩(로그아웃 후 여기로 돌아옴, 자동 재로그인 X)
-  if (!user) {
-    return <LandingPage />;
-  }
-
-  return <Builder />;
+  // 로그인 여부와 무관하게 사용방법 랜딩을 보여준다.
+  // 로그인 상태면 CTA가 "새 코스 만들기"(/new)로 바뀌어 제작 페이지로 바로 이동한다.
+  return <LandingPage loggedIn={!!user} />;
 }

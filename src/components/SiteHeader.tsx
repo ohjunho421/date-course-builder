@@ -210,7 +210,8 @@ export default function SiteHeader({ userName, kakaoOn }: SiteHeaderProps) {
             )}
 
             <div style={{ display: "grid", gap: 4 }}>
-              <MenuLink href="/" icon={userName ? "📝" : "🏠"} label={userName ? "코스 만들기" : "홈"} />
+              <MenuLink href="/" icon="🏠" label="홈" />
+              {userName && <MenuLink href="/new" icon="📝" label="코스 만들기" />}
               {userName && <MenuLink href="/history" icon="📑" label="내 코스" />}
             </div>
 

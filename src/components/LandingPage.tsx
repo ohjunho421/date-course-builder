@@ -1,20 +1,24 @@
+import Link from "next/link";
 import BrandLogo from "./BrandLogo";
 
 const KAKAO_HREF = "/api/auth/kakao/login?next=/";
+const NEW_HREF = "/new";
 
-const kakaoBtn: React.CSSProperties = {
+const ctaBase: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   gap: 8,
-  background: "#FEE500",
-  color: "#191600",
   fontWeight: 800,
   fontSize: 16,
   borderRadius: 14,
   padding: "15px 28px",
   textDecoration: "none",
+  cursor: "pointer",
 };
+
+const kakaoBtn: React.CSSProperties = { ...ctaBase, background: "#FEE500", color: "#191600" };
+const wineBtn: React.CSSProperties = { ...ctaBase, background: "var(--wine)", color: "#fff" };
 
 const arrow: React.CSSProperties = { color: "var(--gold-deep)", fontWeight: 800, fontSize: 13 };
 
@@ -122,7 +126,24 @@ function Badge({ n }: { n: number }) {
   );
 }
 
-export default function LandingPage() {
+function PrimaryCta({ loggedIn, full = false }: { loggedIn: boolean; full?: boolean }) {
+  const extra: React.CSSProperties = full ? { width: "100%", maxWidth: 320 } : {};
+  return loggedIn ? (
+    <Link href={NEW_HREF} style={{ ...wineBtn, ...extra }}>
+      🗓️ 새 코스 만들기
+    </Link>
+  ) : (
+    <a href={KAKAO_HREF} style={{ ...kakaoBtn, ...extra }}>
+      💬 카카오로 시작하기
+    </a>
+  );
+}
+
+interface LandingPageProps {
+  loggedIn?: boolean;
+}
+
+export default function LandingPage({ loggedIn = false }: LandingPageProps) {
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "32px 22px 64px" }}>
       {/* hero */}
@@ -150,11 +171,17 @@ export default function LandingPage() {
           <br />
           <NW>사진·리뷰·지도 동선</NW>까지 한 장의 링크에 담겨요.
         </p>
-        <a href={KAKAO_HREF} style={kakaoBtn}>
-          💬 카카오로 시작하기
-        </a>
+        <PrimaryCta loggedIn={loggedIn} />
         <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 12 }}>
-          <NW>3초 만에 시작</NW> · <NW>설치 없이 링크로</NW> · <NW>무료</NW>
+          {loggedIn ? (
+            <Link href="/history" style={{ color: "var(--wine)", fontWeight: 700, textDecoration: "none" }}>
+              📑 내가 만든 코스 보기 →
+            </Link>
+          ) : (
+            <>
+              <NW>3초 만에 시작</NW> · <NW>설치 없이 링크로</NW> · <NW>무료</NW>
+            </>
+          )}
         </div>
       </section>
 
@@ -199,11 +226,9 @@ export default function LandingPage() {
       {/* bottom CTA */}
       <section style={{ textAlign: "center", marginTop: 40 }}>
         <p className="serif" style={{ fontSize: 18, color: "var(--wine)", fontWeight: 700, margin: "0 0 16px" }}>
-          이번 데이트, 같이 골라볼까요?
+          {loggedIn ? "바로 코스를 만들어 볼까요?" : "이번 데이트, 같이 골라볼까요?"}
         </p>
-        <a href={KAKAO_HREF} style={{ ...kakaoBtn, width: "100%", maxWidth: 320 }}>
-          💬 카카오로 시작하기
-        </a>
+        <PrimaryCta loggedIn={loggedIn} full />
       </section>
     </div>
   );

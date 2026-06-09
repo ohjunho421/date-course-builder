@@ -45,3 +45,6 @@ next-env.d.ts
 
 # OMC state
 /.omc/
+
+# Playwright MCP screenshots (preview only)
+/.playwright-mcp/
