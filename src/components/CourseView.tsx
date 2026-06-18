@@ -535,18 +535,20 @@ function StopSection({
     if (!url.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/resolve", {
+      // 파싱만 하지 말고 서버(DB)에 영속화까지 하는 엔드포인트를 호출한다.
+      // 이래야 새로고침/재방문 후에도 추가한 장소가 남는다.
+      const res = await fetch(`/api/courses/${slug}/places`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ stopId: stop.id, url: url.trim() }),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j.error || "불러오기 실패");
+      if (!res.ok) throw new Error(j.error || "추가에 실패했어요.");
       onPlaceAdded(j.place as Place);
       setUrl("");
       setAddOpen(false);
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "불러오기에 실패했어요.");
+      setErr(e instanceof Error ? e.message : "추가에 실패했어요.");
     } finally {
       setLoading(false);
     }
