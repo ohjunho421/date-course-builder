@@ -17,6 +17,28 @@ function emojiFor(category: string): string {
   return "📍";
 }
 
+/**
+ * 붙여넣은 텍스트에서 네이버 링크만 뽑아낸다.
+ * 카카오톡 공유 등으로 복사하면 "가게이름 https://naver.me/xxx 네이버지도"처럼
+ * 가게 이름·줄바꿈·안내문구가 URL과 함께 들어오는데, 그 중 URL만 추출한다.
+ * URL은 항상 ASCII이므로 한글/공백/따옴표를 만나면 거기서 끊는다.
+ */
+export function extractNaverUrl(input: string): string {
+  const text = (input || "").trim();
+  // 1) 스킴이 있는 정식 URL (https://naver.me/..., https://m.place.naver.com/...)
+  const withScheme = text.match(
+    /https?:\/\/[^\s"'<>가-힣]*naver\.(?:me|com)[^\s"'<>가-힣]*/i
+  );
+  if (withScheme) return withScheme[0];
+  // 2) 스킴이 빠진 채로 복사된 경우 (naver.me/..., map.naver.com/...)
+  const noScheme = text.match(
+    /(?:[\w-]+\.)*naver\.(?:me|com)\/[^\s"'<>가-힣]*/i
+  );
+  if (noScheme) return "https://" + noScheme[0];
+  // 추출 실패 시 원본을 그대로 돌려준다 (기존 동작 유지)
+  return text;
+}
+
 /** drop ASCII control characters (Naver injects them into og:title) */
 function stripControls(str: string): string {
   let out = "";
@@ -113,7 +135,8 @@ async function resolvePlaceId(url: string): Promise<string> {
 }
 
 export async function resolveNaverPlace(url: string): Promise<Place> {
-  const placeId = await resolvePlaceId(url.trim());
+  const cleanUrl = extractNaverUrl(url);
+  const placeId = await resolvePlaceId(cleanUrl);
   const placeUrl = `https://m.place.naver.com/restaurant/${placeId}/home`;
   const res = await fetch(placeUrl, {
     cache: "no-store",
@@ -143,7 +166,7 @@ export async function resolveNaverPlace(url: string): Promise<Place> {
   }
 
   return {
-    sourceUrl: url.trim(),
+    sourceUrl: cleanUrl,
     placeId,
     placeUrl: `https://map.naver.com/p/entry/place/${placeId}`,
     name,
