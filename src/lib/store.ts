@@ -1,7 +1,16 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { customAlphabet } from "nanoid";
-import type { Course, CourseData, CourseResponse, CourseSummary, Place, Stop } from "./types";
+import type {
+  Course,
+  CourseData,
+  CourseMemory,
+  CourseResponse,
+  CourseSummary,
+  MemoryKind,
+  Place,
+  Stop,
+} from "./types";
 
 const nano = customAlphabet("23456789abcdefghjkmnpqrstuvwxyz", 8);
 const nanoToken = customAlphabet("23456789abcdefghjkmnpqrstuvwxyz", 16);
@@ -13,6 +22,8 @@ const DATA_DIR = path.join(process.cwd(), ".data");
 const COURSE_FILE = path.join(DATA_DIR, "courses.json");
 const RESP_FILE = path.join(DATA_DIR, "responses.json");
 const PART_FILE = path.join(DATA_DIR, "participants.json"); // slug -> [userId, ...]
+const MEMORY_FILE = path.join(DATA_DIR, "memories.json"); // slug -> [CourseMemory, ...]
+const MEDIA_DIR = path.join(DATA_DIR, "media"); // 파일 저장 모드의 미디어 바이너리 (파일명 = memory id)
 
 async function readJson<T>(file: string, fallback: T): Promise<T> {
   try {
@@ -127,6 +138,116 @@ export async function addPlaceToStop(
   stop.places.push(place);
   await writeJson(COURSE_FILE, all);
   return { added: true, stop };
+}
+
+/* ---------- memories (추억 기록: 사진·영상·텍스트) ---------- */
+export async function getMemories(slug: string): Promise<CourseMemory[]> {
+  if (useDb) {
+    const { prisma } = await import("./prisma");
+    const rows = await prisma.courseMemory.findMany({
+      where: { courseSlug: slug },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, kind: true, text: true, mimeType: true, createdAt: true },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      kind: r.kind as MemoryKind,
+      text: r.text,
+      mimeType: r.mimeType ?? undefined,
+      createdAt: r.createdAt.toISOString(),
+    }));
+  }
+  const all = await readJson<Record<string, CourseMemory[]>>(MEMORY_FILE, {});
+  return [...(all[slug] ?? [])].reverse();
+}
+
+export async function createMemory(
+  slug: string,
+  input: { kind: MemoryKind; text: string; mimeType?: string; data?: Buffer }
+): Promise<CourseMemory | null> {
+  const course = await getCourse(slug);
+  if (!course) return null;
+
+  if (useDb) {
+    const { prisma } = await import("./prisma");
+    const row = await prisma.courseMemory.create({
+      data: {
+        courseSlug: slug,
+        kind: input.kind,
+        text: input.text,
+        mimeType: input.mimeType ?? null,
+        // Prisma 6의 Bytes는 Uint8Array<ArrayBuffer>를 요구 — Buffer 그대로는 타입 불일치
+        data: input.data ? new Uint8Array(input.data) : null,
+      },
+    });
+    return {
+      id: row.id,
+      kind: input.kind,
+      text: input.text,
+      mimeType: input.mimeType,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  const memory: CourseMemory = {
+    id: nanoToken(),
+    kind: input.kind,
+    text: input.text,
+    mimeType: input.mimeType,
+    createdAt: new Date().toISOString(),
+  };
+  if (input.data) {
+    await fs.mkdir(MEDIA_DIR, { recursive: true });
+    await fs.writeFile(path.join(MEDIA_DIR, memory.id), input.data);
+  }
+  const all = await readJson<Record<string, CourseMemory[]>>(MEMORY_FILE, {});
+  all[slug] = [...(all[slug] ?? []), memory];
+  await writeJson(MEMORY_FILE, all);
+  return memory;
+}
+
+export async function getMemoryMedia(
+  slug: string,
+  id: string
+): Promise<{ mimeType: string; data: Buffer } | null> {
+  if (useDb) {
+    const { prisma } = await import("./prisma");
+    const row = await prisma.courseMemory.findFirst({
+      where: { id, courseSlug: slug },
+      select: { mimeType: true, data: true },
+    });
+    if (!row?.data || !row.mimeType) return null;
+    return { mimeType: row.mimeType, data: Buffer.from(row.data) };
+  }
+  const all = await readJson<Record<string, CourseMemory[]>>(MEMORY_FILE, {});
+  const memory = (all[slug] ?? []).find((m) => m.id === id);
+  if (!memory?.mimeType) return null;
+  try {
+    const data = await fs.readFile(path.join(MEDIA_DIR, id));
+    return { mimeType: memory.mimeType, data };
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteMemory(slug: string, id: string): Promise<boolean> {
+  if (useDb) {
+    const { prisma } = await import("./prisma");
+    const res = await prisma.courseMemory.deleteMany({ where: { id, courseSlug: slug } });
+    return res.count > 0;
+  }
+  const all = await readJson<Record<string, CourseMemory[]>>(MEMORY_FILE, {});
+  const list = all[slug] ?? [];
+  const next = list.filter((m) => m.id !== id);
+  if (next.length === list.length) return false;
+  all[slug] = next;
+  await writeJson(MEMORY_FILE, all);
+  try {
+    await fs.rm(path.join(MEDIA_DIR, id), { force: true });
+  } catch {
+    /* 미디어 없는 텍스트 기록 — 무시 */
+  }
+  return true;
 }
 
 /* ---------- responses ---------- */

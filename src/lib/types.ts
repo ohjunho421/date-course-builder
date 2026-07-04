@@ -50,6 +50,17 @@ export type CourseSummary = {
   role: "owner" | "received"; // 내가 만든 코스 / 받은 코스
 };
 
+export type MemoryKind = "image" | "video" | "text";
+
+// 코스에 남기는 추억 기록 (미디어 바이너리는 별도 API로 서빙)
+export type CourseMemory = {
+  id: string;
+  kind: MemoryKind;
+  text: string;
+  mimeType?: string;
+  createdAt: string;
+};
+
 export type CourseResponse = {
   id: string;
   name: string;

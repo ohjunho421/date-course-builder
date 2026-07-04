@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getCourse, addParticipant } from "@/lib/store";
+import { getCourse, getMemories, addParticipant } from "@/lib/store";
 import { getSession } from "@/lib/auth";
 import CourseView from "@/components/CourseView";
 import ShareBar from "@/components/ShareBar";
@@ -39,10 +39,12 @@ export default async function CoursePage({ params, searchParams }: PageProps) {
     }
   }
 
+  const memories = await getMemories(slug);
+
   return (
     <>
       <ShareBar slug={slug} ownerToken={isOwner ? owner : undefined} title={course.title} />
-      <CourseView course={course} />
+      <CourseView course={course} initialMemories={memories} />
     </>
   );
 }

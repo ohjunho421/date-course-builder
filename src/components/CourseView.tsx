@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import type { Course, Place, Stop, SelectedPlaces } from "@/lib/types";
+import type { Course, CourseMemory, Place, Stop, SelectedPlaces } from "@/lib/types";
 import { MODE_LABEL, MODE_EMOJI } from "@/lib/types";
 import { fmtDist, fmtDur, naverDirUrl } from "@/lib/format";
 import type { MapLeg, MapPoint } from "./CourseMap";
+import MemoryLog from "./MemoryLog";
 
 const CourseMap = dynamic(() => import("./CourseMap"), {
   ssr: false,
@@ -30,9 +31,10 @@ type Leg = { geometry: [number, number][]; distance: number; duration: number; e
 
 interface CourseViewProps {
   course: Course;
+  initialMemories?: CourseMemory[];
 }
 
-export default function CourseView({ course }: CourseViewProps) {
+export default function CourseView({ course, initialMemories = [] }: CourseViewProps) {
   // 대중교통 제거 — 도보/차량만 노출 (과거에 생성된 코스 호환)
   const availableModes = course.modes.filter((m) => m === "walk" || m === "car");
   const modes = availableModes.length ? availableModes : ["walk"];
@@ -228,6 +230,9 @@ export default function CourseView({ course }: CourseViewProps) {
           onPlaceAdded={(place) => handleAddPlace(st.id, place)}
         />
       ))}
+
+      {/* 추억 기록: 사진·영상·한 줄 텍스트 */}
+      <MemoryLog slug={course.slug} initial={initialMemories} />
 
       {/* summary bar */}
       <div

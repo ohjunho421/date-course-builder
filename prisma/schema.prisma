@@ -19,8 +19,23 @@ model Course {
   createdAt    DateTime            @default(now())
   responses    Response[]
   participants CourseParticipant[]
+  memories     CourseMemory[]
 
   @@index([userId])
+}
+
+// 다녀온 뒤 남기는 추억 기록 — 사진/영상(바이너리 포함) 또는 한 줄 텍스트
+model CourseMemory {
+  id         String   @id @default(cuid())
+  courseSlug String
+  kind       String // "image" | "video" | "text"
+  text       String   @default("")
+  mimeType   String?
+  data       Bytes?
+  createdAt  DateTime @default(now())
+  course     Course   @relation(fields: [courseSlug], references: [slug], onDelete: Cascade)
+
+  @@index([courseSlug])
 }
 
 // 코스를 받은(공유 링크로 들어온) 로그인 사용자 — "받은 코스"로 히스토리에 표시
