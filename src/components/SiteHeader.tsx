@@ -25,14 +25,33 @@ const itemBase: React.CSSProperties = {
   textDecoration: "none",
 };
 
+function MenuLink({ href, icon, label, pathname }: { href: string; icon: string; label: string; pathname: string }) {
+  const active = pathname === href;
+  return (
+    <Link
+      href={href}
+      style={{
+        ...itemBase,
+        background: active ? "rgba(206,20,35,.08)" : "transparent",
+        color: active ? "var(--wine)" : "var(--ink)",
+      }}
+    >
+      <span style={{ fontSize: 18, width: 24, textAlign: "center", flex: "none" }}>{icon}</span>
+      {label}
+    </Link>
+  );
+}
+
 export default function SiteHeader({ userName, kakaoOn }: SiteHeaderProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  // 라우트가 바뀌면 드로어를 닫는다
-  useEffect(() => {
+  // 라우트가 바뀌면 드로어를 닫는다 (렌더 중 이전 경로와 비교해 조정)
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   // 열려 있는 동안 ESC로 닫고 배경 스크롤을 잠근다
   useEffect(() => {
@@ -48,23 +67,6 @@ export default function SiteHeader({ userName, kakaoOn }: SiteHeaderProps) {
       document.body.style.overflow = prev;
     };
   }, [open]);
-
-  function MenuLink({ href, icon, label }: { href: string; icon: string; label: string }) {
-    const active = pathname === href;
-    return (
-      <Link
-        href={href}
-        style={{
-          ...itemBase,
-          background: active ? "rgba(206,20,35,.08)" : "transparent",
-          color: active ? "var(--wine)" : "var(--ink)",
-        }}
-      >
-        <span style={{ fontSize: 18, width: 24, textAlign: "center", flex: "none" }}>{icon}</span>
-        {label}
-      </Link>
-    );
-  }
 
   return (
     <>
@@ -210,9 +212,9 @@ export default function SiteHeader({ userName, kakaoOn }: SiteHeaderProps) {
             )}
 
             <div style={{ display: "grid", gap: 4 }}>
-              <MenuLink href="/" icon="🏠" label="홈" />
-              {userName && <MenuLink href="/new" icon="📝" label="코스 만들기" />}
-              {userName && <MenuLink href="/history" icon="📑" label="내 코스" />}
+              <MenuLink href="/" icon="🏠" label="홈" pathname={pathname} />
+              {userName && <MenuLink href="/new" icon="📝" label="코스 만들기" pathname={pathname} />}
+              {userName && <MenuLink href="/history" icon="📑" label="내 코스" pathname={pathname} />}
             </div>
 
             {kakaoOn && (

@@ -128,7 +128,7 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
                   fontSize: 14,
                 }}
               >
-                "{r.message}"
+                &quot;{r.message}&quot;
               </div>
             )}
           </article>

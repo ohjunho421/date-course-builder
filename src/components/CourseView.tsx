@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Course, CourseMemory, Place, Stop, SelectedPlaces } from "@/lib/types";
 import { MODE_LABEL, MODE_EMOJI } from "@/lib/types";
@@ -65,7 +65,6 @@ export default function CourseView({ course, initialMemories = [] }: CourseViewP
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState(modes[0]);
   const [legs, setLegs] = useState<Leg[]>([]);
-  const [routing, setRouting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -96,30 +95,32 @@ export default function CourseView({ course, initialMemories = [] }: CourseViewP
     [pickedPlaces]
   );
 
-  const fetchRoute = useCallback(async () => {
-    if (geoPoints.length < 2) {
-      setLegs([]);
-      return;
-    }
-    setRouting(true);
-    try {
-      const res = await fetch("/api/route", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, points: geoPoints.map((p) => ({ lat: p.lat, lng: p.lng })) }),
-      });
-      const j = await res.json();
-      setLegs(j.legs ?? []);
-    } catch {
-      setLegs([]);
-    } finally {
-      setRouting(false);
-    }
-  }, [geoPoints, mode]);
-
+  // 시트가 열려 있는 동안 지점/이동수단 변경에 맞춰 경로를 다시 불러온다
   useEffect(() => {
-    if (open) fetchRoute();
-  }, [open, mode, fetchRoute]);
+    if (!open) return;
+    let ignore = false;
+    const load = async () => {
+      if (geoPoints.length < 2) {
+        setLegs([]);
+        return;
+      }
+      try {
+        const res = await fetch("/api/route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode, points: geoPoints.map((p) => ({ lat: p.lat, lng: p.lng })) }),
+        });
+        const j = await res.json();
+        if (!ignore) setLegs(j.legs ?? []);
+      } catch {
+        if (!ignore) setLegs([]);
+      }
+    };
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [open, mode, geoPoints]);
 
   function togglePlace(stopId: string, name: string) {
     setSelected((prev) => {
