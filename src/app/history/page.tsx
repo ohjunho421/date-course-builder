@@ -5,7 +5,8 @@ import { getCoursesByUser } from "@/lib/store";
 export const dynamic = "force-dynamic";
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <div style={{ maxWidth: 520, margin: "0 auto", padding: "44px 18px 60px" }}>{children}</div>;
+  // width:100% 없으면 flex 컬럼(body) 안에서 auto 마진이 콘텐츠 폭으로 수축해 좌우 여백이 과도해짐
+  return <div style={{ width: "100%", maxWidth: 520, margin: "0 auto", padding: "44px 18px 60px" }}>{children}</div>;
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {

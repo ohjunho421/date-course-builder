@@ -163,6 +163,22 @@ p {
   font-family: inherit;
 }
 
+/* ---- route loading skeleton ---- */
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+.skeleton {
+  background: #ece0d0;
+  border-radius: 12px;
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+
 .hide-scroll::-webkit-scrollbar {
   display: none;
 }

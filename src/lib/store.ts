@@ -303,57 +303,54 @@ export async function getResponses(slug: string): Promise<CourseResponse[]> {
 }
 
 /* ---------- history (per user): 만든 코스 + 받은 코스 ---------- */
-function stopLen(stops: unknown): number {
-  return Array.isArray(stops) ? (stops as unknown[]).length : 0;
-}
-
 export async function getCoursesByUser(userId: string): Promise<CourseSummary[]> {
   if (useDb) {
     const { prisma } = await import("./prisma");
 
-    // 내가 만든 코스
-    const owned = await prisma.course.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      select: {
-        slug: true,
-        ownerToken: true,
-        title: true,
-        stops: true,
-        createdAt: true,
-        _count: { select: { responses: true } },
-      },
-    });
+    // 목록에는 단계 수만 필요하므로 stops JSON 전체(코스당 수십~수백 KB)를 내려받지 않고
+    // DB에서 배열 길이만 계산한다. 만든 코스/받은 코스 조회는 서로 독립이라 병렬 실행.
+    const [owned, received] = await Promise.all([
+      prisma.$queryRaw<
+        { slug: string; ownerToken: string; title: string; stopCount: number; createdAt: Date; responseCount: number }[]
+      >`
+        SELECT c."slug", c."ownerToken", c."title",
+               CASE WHEN jsonb_typeof(c."stops") = 'array' THEN jsonb_array_length(c."stops") ELSE 0 END AS "stopCount",
+               c."createdAt",
+               (SELECT COUNT(*)::int FROM "Response" r WHERE r."courseSlug" = c."slug") AS "responseCount"
+        FROM "Course" c
+        WHERE c."userId" = ${userId}
+        ORDER BY c."createdAt" DESC
+      `,
+      prisma.$queryRaw<{ slug: string; title: string; stopCount: number; createdAt: Date }[]>`
+        SELECT c."slug", c."title",
+               CASE WHEN jsonb_typeof(c."stops") = 'array' THEN jsonb_array_length(c."stops") ELSE 0 END AS "stopCount",
+               p."createdAt"
+        FROM "CourseParticipant" p
+        JOIN "Course" c ON c."slug" = p."courseSlug"
+        WHERE p."userId" = ${userId} AND (c."userId" IS NULL OR c."userId" <> ${userId})
+        ORDER BY p."createdAt" DESC
+      `,
+    ]);
+
     const ownerSummaries: CourseSummary[] = owned.map((r) => ({
       slug: r.slug,
       ownerToken: r.ownerToken,
       title: r.title,
-      stopCount: stopLen(r.stops),
-      responseCount: r._count.responses,
+      stopCount: r.stopCount,
+      responseCount: r.responseCount,
       createdAt: r.createdAt.toISOString(),
       role: "owner",
     }));
 
-    // 내가 받은 코스 (참여자)
-    const parts = await prisma.courseParticipant.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      select: {
-        createdAt: true,
-        course: { select: { slug: true, title: true, stops: true, userId: true } },
-      },
-    });
-    const receivedSummaries: CourseSummary[] = parts
-      .filter((p) => p.course && p.course.userId !== userId)
-      .map((p) => ({
-        slug: p.course.slug,
-        ownerToken: "",
-        title: p.course.title,
-        stopCount: stopLen(p.course.stops),
-        responseCount: 0,
-        createdAt: p.createdAt.toISOString(),
-        role: "received",
-      }));
+    const receivedSummaries: CourseSummary[] = received.map((p) => ({
+      slug: p.slug,
+      ownerToken: "",
+      title: p.title,
+      stopCount: p.stopCount,
+      responseCount: 0,
+      createdAt: p.createdAt.toISOString(),
+      role: "received",
+    }));
 
     return [...ownerSummaries, ...receivedSummaries];
   }
