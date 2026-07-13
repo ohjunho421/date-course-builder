@@ -39,3 +39,9 @@ npm run dev
 1. PostgreSQL 플러그인 추가 → `DATABASE_URL` 연결
 2. 배포 시 `postinstall`에서 `prisma generate`, `start`에서 `prisma db push` 자동 실행
 3. (선택) `ORS_API_KEY` 추가
+
+## 앱인토스 (Apps in Toss)
+
+`npm run build:appintoss`로 미니앱 번들(`date-course.ait`)을 만들 수 있습니다.
+콘솔 등록 입력값은 `submission/inputs.md`, 배포 절차와 정책 주의사항은
+`appintoss/README.md`를 참고하세요.

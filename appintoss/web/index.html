@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>달에게 가는 길</title>
+<style>
+  :root {
+    --wine: #6e1423;
+    --wine-2: #a31d2e;
+    --cream: #f7f1e8;
+    --paper: #fcf8f1;
+    --ink-soft: #6a5d57;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(120% 60% at 80% -10%, #fbe7e0 0%, transparent 55%),
+      radial-gradient(120% 60% at -10% 5%, #f3ead9 0%, transparent 50%),
+      var(--paper);
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    color: var(--wine);
+    padding: 24px;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    text-align: center;
+  }
+  .moon { font-size: 44px; margin-bottom: 14px; }
+  h1 { font-size: 20px; font-weight: 800; letter-spacing: 0.08em; margin-bottom: 8px; }
+  p { font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+  .spinner {
+    width: 28px; height: 28px;
+    margin: 22px auto 0;
+    border: 3px solid rgba(110, 20, 35, 0.15);
+    border-top-color: var(--wine);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #retry {
+    display: none;
+    margin: 22px auto 0;
+    padding: 12px 28px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--wine);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #retry:active { background: var(--wine-2); }
+  .offline .spinner { display: none; }
+  .offline #retry { display: block; }
+</style>
+</head>
+<body>
+<main>
+  <div class="moon" aria-hidden="true">🌙</div>
+  <h1>달에게 가는 길</h1>
+  <p id="status">데이트 코스를 불러오고 있어요</p>
+  <div class="spinner" role="progressbar" aria-label="불러오는 중"></div>
+  <button id="retry" type="button">다시 시도하기</button>
+</main>
+<script>
+  (function () {
+    var TARGET = "https://date-course-builder-production.up.railway.app/?from=apps-in-toss";
+    var statusEl = document.getElementById("status");
+    var retryEl = document.getElementById("retry");
+
+    function showOffline() {
+      document.body.classList.add("offline");
+      statusEl.textContent = "네트워크에 연결한 뒤 다시 시도해 주세요";
+    }
+
+    function go() {
+      document.body.classList.remove("offline");
+      statusEl.textContent = "데이트 코스를 불러오고 있어요";
+      if (navigator.onLine === false) {
+        showOffline();
+        return;
+      }
+      window.location.replace(TARGET);
+      // 이동이 오래 걸리면(서버 지연 등) 다시 시도할 수 있게 한다.
+      window.setTimeout(function () {
+        showOffline();
+        statusEl.textContent = "연결이 오래 걸리고 있어요. 다시 시도해 주세요";
+      }, 10000);
+    }
+
+    retryEl.addEventListener("click", go);
+    window.addEventListener("online", go);
+    go();
+  })();
+</script>
+</body>
+</html>
