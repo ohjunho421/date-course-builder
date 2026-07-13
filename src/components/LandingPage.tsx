@@ -108,11 +108,7 @@ function Badge({ n }: { n: number }) {
   );
 }
 
-interface LandingPageProps {
-  loggedIn?: boolean;
-}
-
-export default function LandingPage({ loggedIn = false }: LandingPageProps) {
+export default function LandingPage() {
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "32px 22px 64px" }}>
       {/* hero */}
@@ -140,17 +136,14 @@ export default function LandingPage({ loggedIn = false }: LandingPageProps) {
           <br />
           <NW>사진·리뷰·지도 동선</NW>까지 한 장의 링크에 담겨요.
         </p>
-        <PrimaryCta loggedIn={loggedIn} />
-        <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 12 }}>
-          {loggedIn ? (
-            <Link href="/history" style={{ color: "var(--wine)", fontWeight: 700, textDecoration: "none" }}>
-              📑 내가 만든 코스 보기 →
-            </Link>
-          ) : (
-            <>
-              <NW>3초 만에 시작</NW> · <NW>설치 없이 링크로</NW> · <NW>무료</NW>
-            </>
-          )}
+        <PrimaryCta />
+        <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 12, display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+          <div>
+            <NW>로그인 없이 바로 시작</NW> · <NW>설치 없이 링크로</NW> · <NW>무료</NW>
+          </div>
+          <Link href="/history" style={{ color: "var(--wine)", fontWeight: 700, textDecoration: "none" }}>
+            📑 내가 만든 코스 보기 →
+          </Link>
         </div>
       </section>
 
@@ -195,9 +188,9 @@ export default function LandingPage({ loggedIn = false }: LandingPageProps) {
       {/* bottom CTA */}
       <section style={{ textAlign: "center", marginTop: 40 }}>
         <p className="serif" style={{ fontSize: 18, color: "var(--wine)", fontWeight: 700, margin: "0 0 16px" }}>
-          {loggedIn ? "바로 코스를 만들어 볼까요?" : "이번 데이트, 같이 골라볼까요?"}
+          이번 데이트, 같이 골라볼까요?
         </p>
-        <PrimaryCta loggedIn={loggedIn} full />
+        <PrimaryCta full />
       </section>
     </div>
   );

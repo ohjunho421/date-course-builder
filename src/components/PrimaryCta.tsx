@@ -1,10 +1,5 @@
-"use client";
-
 import Link from "next/link";
-import { useTossEnv } from "@/lib/toss-client";
-import TossLoginButton from "./TossLoginButton";
 
-const KAKAO_HREF = "/api/auth/kakao/login?next=/";
 const NEW_HREF = "/new";
 
 const ctaBase: React.CSSProperties = {
@@ -20,27 +15,15 @@ const ctaBase: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const kakaoBtn: React.CSSProperties = { ...ctaBase, background: "#FEE500", color: "#191600" };
 const wineBtn: React.CSSProperties = { ...ctaBase, background: "var(--wine)", color: "#fff" };
 
-// 랜딩 메인 CTA. 앱인토스 WebView에서는 정책상 토스 로그인만 노출한다.
-export default function PrimaryCta({ loggedIn, full = false }: { loggedIn: boolean; full?: boolean }) {
-  const toss = useTossEnv();
+// 랜딩 메인 CTA — 로그인 없이 누구나 바로 코스를 만들 수 있다.
+// 로그인은 선택 사항으로 헤더 메뉴에 있다.
+export default function PrimaryCta({ full = false }: { loggedIn?: boolean; full?: boolean }) {
   const extra: React.CSSProperties = full ? { width: "100%", maxWidth: 320 } : {};
-
-  if (loggedIn) {
-    return (
-      <Link href={NEW_HREF} style={{ ...wineBtn, ...extra }}>
-        🗓️ 새 코스 만들기
-      </Link>
-    );
-  }
-  if (toss) {
-    return <TossLoginButton next="/" style={extra} />;
-  }
   return (
-    <a href={KAKAO_HREF} style={{ ...kakaoBtn, ...extra }}>
-      💬 카카오로 시작하기
-    </a>
+    <Link href={NEW_HREF} style={{ ...wineBtn, ...extra }}>
+      🗓️ 새 코스 만들기
+    </Link>
   );
 }

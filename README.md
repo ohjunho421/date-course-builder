@@ -44,6 +44,8 @@ npm run dev
 ## 앱인토스 (Apps in Toss)
 
 `npm run build:appintoss`로 미니앱 번들(`date-course.ait`)을 만들 수 있습니다.
-앱인토스 WebView에서는 정책에 따라 카카오 대신 **토스 로그인**과 **토스 공유
-시트**가 노출됩니다. 콘솔 등록 입력값은 `submission/inputs.md`, 배포 절차와
-정책 대응 현황은 `appintoss/README.md`를 참고하세요.
+**로그인 없이** 코스를 만들고 공유할 수 있어요(만든 코스는 이 기기의 "내 코스"에
+보관). 앱인토스 WebView에서는 카카오 대신 **토스 공유 시트**가 쓰이고, 토스
+로그인은 크로스 디바이스 보관용 선택 기능입니다. 콘솔 등록 입력값은
+`submission/inputs.md`, 배포 절차와 정책 대응 현황은 `appintoss/README.md`를
+참고하세요.

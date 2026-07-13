@@ -217,8 +217,8 @@ export default function SiteHeader({ userName, kakaoOn }: SiteHeaderProps) {
 
             <div style={{ display: "grid", gap: 4 }}>
               <MenuLink href="/" icon="🏠" label="홈" pathname={pathname} />
-              {userName && <MenuLink href="/new" icon="📝" label="코스 만들기" pathname={pathname} />}
-              {userName && <MenuLink href="/history" icon="📑" label="내 코스" pathname={pathname} />}
+              <MenuLink href="/new" icon="📝" label="코스 만들기" pathname={pathname} />
+              <MenuLink href="/history" icon="📑" label="내 코스" pathname={pathname} />
             </div>
 
             {(kakaoOn || toss) && (
