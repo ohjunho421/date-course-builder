@@ -30,31 +30,54 @@ date-course.ait        # 업로드용 번들 (gitignore)
 npm run build:appintoss   # 프로젝트 루트에 date-course.ait 생성
 ```
 
+## 토스 로그인
+
+앱인토스 WebView에서는 정책상 토스 로그인만 노출됩니다 (일반 웹은 카카오
+유지). 흐름:
+
+1. 클라이언트: `appLogin()` 브릿지로 인가 코드 획득
+   (`src/lib/toss-client.ts`, `src/components/TossLoginButton.tsx`)
+2. 서버: `POST /api/auth/toss/login` → 파트너 API로 토큰 교환·사용자 조회 →
+   세션 쿠키 발급 (`src/lib/toss.ts`)
+
+활성화에 필요한 서버 환경 변수 (콘솔에서 mTLS 인증서 발급 후):
+
+```
+TOSS_MTLS_CERT_BASE64=$(base64 -w0 cert.pem)
+TOSS_MTLS_KEY_BASE64=$(base64 -w0 key.pem)
+```
+
+미설정 시 토스 로그인 버튼은 "토스 로그인이 아직 설정되지 않았어요" 안내를
+보여줍니다. 파트너 API 경로는 공식 문서와 다르면 `src/lib/toss.ts` 상단
+상수를 수정하세요 (개발 샌드박스에서 문서 사이트 접근이 차단되어 엔드포인트
+경로는 실 인증서로 최종 확인이 필요합니다).
+
 ## 배포 (콘솔 등록 후)
 
 1. <https://apps-in-toss.toss.im/> 에서 앱 만들기 — 입력값은
    `submission/inputs.md` 참고. appName은 반드시 `date-course`.
-2. 콘솔에서 API 키 발급 후 토큰 등록:
+2. 콘솔에서 토스 로그인 설정 + mTLS 인증서 발급 → Railway 환경 변수에 등록.
+3. 콘솔에서 API 키 발급 후 토큰 등록:
 
    ```bash
    npx ait token add --api-key <발급받은 키>
    ```
 
-3. 번들 업로드(배포):
+4. 번들 업로드(배포):
 
    ```bash
    npm run deploy:appintoss -- -m "첫 출시"
    ```
 
-4. 콘솔 "앱 출시"에서 QR 코드로 토스 앱 실내 테스트 → 검토 요청.
+5. 콘솔 "앱 출시"에서 QR 코드로 토스 앱 실내 테스트 → 검토 요청.
 
 `ait token add` 없이 콘솔의 앱 출시 화면에서 `date-course.ait` 파일을 직접
 업로드할 수도 있습니다.
 
-## 출시 검토 전 확인할 정책 리스크
+## 정책 대응 현황
 
-- 앱인토스는 로그인 수단으로 **토스 로그인만** 허용합니다. 현재 서비스의
-  카카오 로그인은 심사 반려 사유가 될 수 있어, 토스 로그인 전환 또는 로그인
-  없는 흐름 조정이 필요합니다.
-- 장소 카드의 네이버 링크·길찾기 딥링크는 외부 링크 제한 정책 검토 대상입니다.
-- 상세 정책: `submission/inputs.md`의 "출시 전 확인 필요" 섹션 참고.
+- 토스 로그인: 구현 완료 — 앱인토스에서는 토스 로그인만 노출.
+- 공유: 앱인토스에서는 카카오톡 공유 대신 토스 공유 시트(`share` 브릿지) 사용.
+- 외부 링크: 네이버 장소/길찾기 링크는 전부 웹 URL이라 WebView 안에서 열림
+  (앱 설치 유도 없음).
+- 상세: `submission/inputs.md`의 "출시 전 확인 필요" 섹션 참고.
