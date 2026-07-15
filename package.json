@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "prisma db push --skip-generate --accept-data-loss && next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "build:appintoss": "ait build",
+    "deploy:appintoss": "ait deploy"
   },
   "dependencies": {
+    "@apps-in-toss/web-framework": "^2.10.5",
     "@prisma/client": "^6.19.3",
     "jose": "^6.2.3",
     "leaflet": "^1.9.4",

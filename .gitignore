@@ -43,6 +43,11 @@ next-env.d.ts
 # local file store (dev)
 /.data/
 
+# apps-in-toss build output
+/dist-appintoss/
+/.granite/
+*.ait
+
 # OMC state
 /.omc/
 

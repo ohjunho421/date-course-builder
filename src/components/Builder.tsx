@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { nanoid } from "nanoid";
 import type { Place, Stop } from "@/lib/types";
 import { MODE_LABEL, MODE_EMOJI } from "@/lib/types";
+import { addMyCourse } from "@/lib/my-courses";
 
 const ALL_MODES = ["walk", "car"];
 
@@ -33,7 +34,7 @@ function makeStop(label: string): Stop {
   return { id: nanoid(6), label, emoji: guessEmoji(label), places: [] };
 }
 
-export default function Builder() {
+export default function Builder({ loggedIn = false }: { loggedIn?: boolean }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [intro, setIntro] = useState("");
@@ -110,6 +111,15 @@ export default function Builder() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "저장 실패");
+      // 비로그인 사용자가 만든 코스를 이 기기의 '내 코스'에서 다시 찾을 수 있게 보관한다.
+      if (!loggedIn) {
+        addMyCourse({
+          slug: j.slug,
+          ownerToken: j.ownerToken,
+          title: title.trim(),
+          createdAt: new Date().toISOString(),
+        });
+      }
       router.push(`/c/${j.slug}?owner=${j.ownerToken}`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "저장에 실패했어요.");

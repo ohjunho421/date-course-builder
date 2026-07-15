@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getSession, kakaoConfigured } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { getCoursesByUser } from "@/lib/store";
+import LocalCourses from "@/components/LocalCourses";
 
 export const dynamic = "force-dynamic";
 
@@ -27,47 +28,24 @@ function timeAgo(iso: string): string {
 }
 
 export default async function HistoryPage() {
-  if (!kakaoConfigured()) {
-    return (
-      <Shell>
-        <div style={{ textAlign: "center", color: "var(--ink-soft)", paddingTop: 40 }}>
-          로그인 기능을 준비 중이에요.
-          <br />
-          <Link href="/" style={{ color: "var(--wine)", fontWeight: 700, textDecoration: "none" }}>
-            ← 코스 만들러 가기
-          </Link>
-        </div>
-      </Shell>
-    );
-  }
-
   const user = await getSession();
+
+  // 비로그인 사용자 — 이 기기에 보관된 코스를 보여준다.
   if (!user) {
     return (
       <Shell>
-        <div style={{ textAlign: "center", paddingTop: 30 }}>
-          <div style={{ fontSize: 40, marginBottom: 10 }}>🌙</div>
-          <h1 className="serif" style={{ fontSize: 24, color: "var(--wine)", margin: "0 0 8px" }}>
-            로그인하고 코스를 보관하세요
-          </h1>
-          <p style={{ color: "var(--ink-soft)", fontSize: 14, margin: "0 0 22px" }}>
-            로그인하면 내가 만든 코스와 상대가 고른 결과를 한곳에서 볼 수 있어요.
-          </p>
-          <a
-            href="/api/auth/kakao/login?next=/history"
-            style={{
-              background: "#FEE500",
-              color: "#191600",
-              fontWeight: 800,
-              fontSize: 15,
-              borderRadius: 12,
-              padding: "13px 22px",
-              textDecoration: "none",
-            }}
-          >
-            💬 카카오로 로그인
-          </a>
-        </div>
+        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 22 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, letterSpacing: ".2em", fontWeight: 700, color: "var(--wine-2)" }}>MY COURSES</div>
+            <h1 className="serif" style={{ fontSize: 24, color: "var(--wine)", fontWeight: 700, margin: "6px 0 0" }}>
+              내가 만든 코스
+            </h1>
+          </div>
+          <Link href="/new" className="btn btn-wine" style={{ flex: "none", padding: "10px 14px", fontSize: 14, whiteSpace: "nowrap" }}>
+            + 새 코스
+          </Link>
+        </header>
+        <LocalCourses />
       </Shell>
     );
   }
@@ -85,7 +63,7 @@ export default async function HistoryPage() {
             {user.name}님의 코스
           </h1>
         </div>
-        <Link href="/" className="btn btn-wine" style={{ flex: "none", padding: "10px 14px", fontSize: 14, whiteSpace: "nowrap" }}>
+        <Link href="/new" className="btn btn-wine" style={{ flex: "none", padding: "10px 14px", fontSize: 14, whiteSpace: "nowrap" }}>
           + 새 코스
         </Link>
       </header>
@@ -104,7 +82,7 @@ export default async function HistoryPage() {
         >
           아직 코스가 없어요.
           <br />
-          <Link href="/" style={{ color: "var(--wine)", fontWeight: 700, textDecoration: "none" }}>
+          <Link href="/new" style={{ color: "var(--wine)", fontWeight: 700, textDecoration: "none" }}>
             첫 코스 만들기 →
           </Link>
         </div>

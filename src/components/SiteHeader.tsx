@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import BrandLogo from "./BrandLogo";
+import TossLoginButton from "./TossLoginButton";
+import { useTossEnv } from "@/lib/toss-client";
 
 interface SiteHeaderProps {
   userName: string | null;
@@ -45,6 +47,8 @@ function MenuLink({ href, icon, label, pathname }: { href: string; icon: string;
 export default function SiteHeader({ userName, kakaoOn }: SiteHeaderProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  // 앱인토스 WebView에서는 정책상 토스 로그인만 노출한다
+  const toss = useTossEnv();
 
   // 라우트가 바뀌면 드로어를 닫는다 (렌더 중 이전 경로와 비교해 조정)
   const [prevPathname, setPrevPathname] = useState(pathname);
@@ -213,17 +217,32 @@ export default function SiteHeader({ userName, kakaoOn }: SiteHeaderProps) {
 
             <div style={{ display: "grid", gap: 4 }}>
               <MenuLink href="/" icon="🏠" label="홈" pathname={pathname} />
-              {userName && <MenuLink href="/new" icon="📝" label="코스 만들기" pathname={pathname} />}
-              {userName && <MenuLink href="/history" icon="📑" label="내 코스" pathname={pathname} />}
+              <MenuLink href="/new" icon="📝" label="코스 만들기" pathname={pathname} />
+              <MenuLink href="/history" icon="📑" label="내 코스" pathname={pathname} />
             </div>
 
-            {kakaoOn && (
+            <div style={{ display: "flex", gap: 14, padding: "10px 12px 0", flexWrap: "wrap" }}>
+              <Link href="/terms" style={{ fontSize: 12.5, color: "var(--ink-soft)", textDecoration: "none" }}>
+                이용약관
+              </Link>
+              <Link href="/privacy" style={{ fontSize: 12.5, color: "var(--ink-soft)", textDecoration: "none" }}>
+                개인정보처리방침
+              </Link>
+            </div>
+
+            {(kakaoOn || toss) && (
               <div style={{ marginTop: "auto", paddingTop: 18, borderTop: "1px solid var(--line)" }}>
                 {userName ? (
                   <a href="/api/auth/logout" style={{ ...itemBase, color: "var(--ink-soft)" }}>
                     <span style={{ fontSize: 18, width: 24, textAlign: "center", flex: "none" }}>↩︎</span>
                     로그아웃
                   </a>
+                ) : toss ? (
+                  <TossLoginButton
+                    next="/history"
+                    label="토스로 로그인"
+                    style={{ width: "100%", borderRadius: 12, padding: "13px 0", fontSize: 15.5 }}
+                  />
                 ) : (
                   <a
                     href="/api/auth/kakao/login?next=/history"

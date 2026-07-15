@@ -33,9 +33,19 @@ npm run dev
 |------|------|------|
 | `DATABASE_URL` | 배포 시 | PostgreSQL 연결 문자열 (Railway가 자동 주입) |
 | `ORS_API_KEY` | 선택 | OpenRouteService 키. 있으면 도보/차량 실제 도로 경로, 없으면 직선거리 추정 |
+| `TOSS_MTLS_CERT_BASE64` / `TOSS_MTLS_KEY_BASE64` | 앱인토스 | 토스 로그인용 mTLS 인증서 (앱인토스 콘솔에서 발급, base64 한 줄) |
 
 ## 배포 (Railway)
 
 1. PostgreSQL 플러그인 추가 → `DATABASE_URL` 연결
 2. 배포 시 `postinstall`에서 `prisma generate`, `start`에서 `prisma db push` 자동 실행
 3. (선택) `ORS_API_KEY` 추가
+
+## 앱인토스 (Apps in Toss)
+
+`npm run build:appintoss`로 미니앱 번들(`date-course.ait`)을 만들 수 있습니다.
+**로그인 없이** 코스를 만들고 공유할 수 있어요(만든 코스는 이 기기의 "내 코스"에
+보관). 앱인토스 WebView에서는 카카오 대신 **토스 공유 시트**가 쓰이고, 토스
+로그인은 크로스 디바이스 보관용 선택 기능입니다. 콘솔 등록 입력값은
+`submission/inputs.md`, 배포 절차와 정책 대응 현황은 `appintoss/README.md`를
+참고하세요.

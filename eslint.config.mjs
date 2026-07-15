@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // apps-in-toss build output
+    "dist-appintoss/**",
+    ".granite/**",
   ]),
 ]);
 
