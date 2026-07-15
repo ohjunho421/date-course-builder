@@ -221,6 +221,15 @@ export default function SiteHeader({ userName, kakaoOn }: SiteHeaderProps) {
               <MenuLink href="/history" icon="📑" label="내 코스" pathname={pathname} />
             </div>
 
+            <div style={{ display: "flex", gap: 14, padding: "10px 12px 0", flexWrap: "wrap" }}>
+              <Link href="/terms" style={{ fontSize: 12.5, color: "var(--ink-soft)", textDecoration: "none" }}>
+                이용약관
+              </Link>
+              <Link href="/privacy" style={{ fontSize: 12.5, color: "var(--ink-soft)", textDecoration: "none" }}>
+                개인정보처리방침
+              </Link>
+            </div>
+
             {(kakaoOn || toss) && (
               <div style={{ marginTop: "auto", paddingTop: 18, borderTop: "1px solid var(--line)" }}>
                 {userName ? (

@@ -89,6 +89,16 @@
     개발 샌드박스 네트워크 제한으로 비어 있음 — 최종 제출 전 운영 환경에서
     재캡처 권장.
 
+## 약관 (콘솔 약관 영역 URL)
+
+- 이용약관: `https://date-course-builder-production.up.railway.app/terms`
+- 개인정보처리방침: `https://date-course-builder-production.up.railway.app/privacy`
+
+두 문서는 서비스 실제 동작(무료·로그인 선택·결제/광고 없음)에 맞춰 작성한
+초안이에요. `src/lib/legal.ts`의 대괄호 항목(운영자 성명/상호, 개인정보
+보호책임자, 문의 이메일)을 실제 값으로 바꾼 뒤 사용하세요. 실서비스 배포 전
+변호사 검토를 권장해요.
+
 ## 버전 메모 (앱 출시 시, 120자 이내)
 
 ```
