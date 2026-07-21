@@ -7,6 +7,7 @@ import { MODE_LABEL, MODE_EMOJI } from "@/lib/types";
 import { fmtDist, fmtDur, naverDirUrl } from "@/lib/format";
 import type { MapLeg, MapPoint } from "./CourseMap";
 import MemoryLog from "./MemoryLog";
+import AdBanner from "./AdBanner";
 
 const CourseMap = dynamic(() => import("./CourseMap"), {
   ssr: false,
@@ -234,6 +235,9 @@ export default function CourseView({ course, initialMemories = [] }: CourseViewP
 
       {/* 추억 기록: 사진·영상·한 줄 텍스트 */}
       <MemoryLog slug={course.slug} initial={initialMemories} />
+
+      {/* 광고 — 콘텐츠 끝, 하단 고정 바 위 여백에 은은하게 */}
+      <AdBanner style={{ margin: "36px 0 8px" }} />
 
       {/* summary bar */}
       <div
