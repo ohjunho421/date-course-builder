@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getSession, kakaoConfigured } from "@/lib/auth";
 import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -39,6 +40,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         <SiteHeader userName={user?.name ?? null} kakaoOn={kakaoConfigured()} />
         {children}
+        <SiteFooter />
       </body>
     </html>
   );
