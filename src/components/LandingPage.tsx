@@ -1,6 +1,7 @@
 import Link from "next/link";
 import BrandLogo from "./BrandLogo";
 import PrimaryCta from "./PrimaryCta";
+import AdBanner from "./AdBanner";
 
 const arrow: React.CSSProperties = { color: "var(--gold-deep)", fontWeight: 800, fontSize: 13 };
 
@@ -192,6 +193,9 @@ export default function LandingPage() {
         </p>
         <PrimaryCta full />
       </section>
+
+      {/* 광고 — 콘텐츠 끝, 하단에 은은하게 */}
+      <AdBanner style={{ marginTop: 40 }} />
     </div>
   );
 }
