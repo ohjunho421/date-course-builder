@@ -14,7 +14,7 @@ export default function SiteFooter() {
 
   // 코스 보기 페이지(/c/[slug])에는 하단 고정 액션 바가 있어, 푸터가 그 뒤로
   // 가려지지 않도록 아래 여백을 넉넉히 준다.
-  const onCourseView = /^\/c\/[^/]+$/.test(pathname);
+  const onCourseView = pathname ? /^\/c\/[^/]+$/.test(pathname) : false;
   const bottomPad = onCourseView ? "104px" : "30px";
 
   return (
@@ -59,7 +59,7 @@ export default function SiteFooter() {
           blogcheatkey.com →
         </a>
 
-        <div style={{ fontSize: 11.5, color: "var(--ink-soft)", opacity: 0.8, marginTop: 2 }}>
+        <div suppressHydrationWarning style={{ fontSize: 11.5, color: "var(--ink-soft)", opacity: 0.8, marginTop: 2 }}>
           © {year} 블로그치트키. All rights reserved.
         </div>
       </div>
