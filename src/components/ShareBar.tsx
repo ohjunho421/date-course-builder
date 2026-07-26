@@ -2,18 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import KakaoShareButton from "./KakaoShareButton";
 import { useTossEnv, tossShare } from "@/lib/toss-client";
 
 interface ShareBarProps {
   slug: string;
   ownerToken?: string; // present only for the creator viewing their just-made course
-  title?: string;
 }
 
-export default function ShareBar({ slug, ownerToken, title = "달에게 가는 길" }: ShareBarProps) {
+export default function ShareBar({ slug, ownerToken }: ShareBarProps) {
   const [copied, setCopied] = useState(false);
-  // 앱인토스에서는 외부 앱(카카오톡) 이동 대신 토스 공유 시트를 쓴다 (외부 링크 정책)
+  // 앱인토스에서는 토스 공유 시트를 쓴다 (외부 링크 정책)
   const toss = useTossEnv();
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}/c/${slug}` : `/c/${slug}`;
@@ -60,7 +58,10 @@ export default function ShareBar({ slug, ownerToken, title = "달에게 가는 �
           <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 12px" }}>
             아래 링크를 상대에게 보내면, 상대가 직접 골라서 보낼 수 있어요.
           </p>
-          {toss ? (
+          {/* 카카오톡 공유 버튼은 동작하지 않아 제거했다.
+              일반 브라우저에서는 아래 "공유하기"가 OS 공유 시트를 열고,
+              거기서 카카오톡을 포함해 원하는 앱으로 보낼 수 있다. */}
+          {toss && (
             <button
               className="btn btn-wine"
               style={{ width: "100%", padding: "12px 0", marginBottom: 8 }}
@@ -68,14 +69,6 @@ export default function ShareBar({ slug, ownerToken, title = "달에게 가는 �
             >
               💌 코스 링크 공유하기
             </button>
-          ) : (
-            <KakaoShareButton
-              url={shareUrl}
-              title={title}
-              description="같이 갈 코스 골라줘 🌙 — 마음에 드는 곳을 직접 골라봐요"
-              style={{ width: "100%", padding: "12px 0", marginBottom: 8 }}
-              label="💬 카카오톡으로 공유"
-            />
           )}
           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
             <button className="btn btn-ghost" style={{ flex: 1, padding: "11px 0" }} onClick={copyLink}>
