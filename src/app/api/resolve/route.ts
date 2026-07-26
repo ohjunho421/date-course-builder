@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     }
     if (!/naver\.me|naver\.com/.test(url)) {
       return NextResponse.json(
-        { error: "네이버 지도 공유 링크(naver.me)를 넣어주세요." },
+        { error: "네이버 지도·네이버 검색의 장소 공유 링크(naver.me, map.naver.com)를 넣어주세요." },
         { status: 400 }
       );
     }
