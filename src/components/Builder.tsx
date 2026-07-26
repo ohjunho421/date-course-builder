@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { nanoid } from "nanoid";
 import type { Place, Stop } from "@/lib/types";
@@ -127,30 +127,112 @@ export default function Builder({ loggedIn = false }: { loggedIn?: boolean }) {
     }
   }
 
-  // drag-and-drop reordering of stops
+  // 단계 순서 변경 — 포인터 이벤트 기반.
+  // 예전엔 HTML5 드래그앤드롭(draggable + dragstart)을 썼는데, 모바일 브라우저는
+  // 터치로 드래그 이벤트를 발생시키지 않아 휴대폰에서는 아예 동작하지 않았다.
+  // 포인터 이벤트는 마우스·터치·펜을 한 경로로 처리한다.
   const dragId = useRef<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
-  function onDragStart(id: string) {
+  const cardRefs = useRef(new Map<string, HTMLDivElement>());
+  const scrollSpeed = useRef(0);
+  const rafId = useRef(0);
+
+  function registerCard(id: string, el: HTMLDivElement | null) {
+    if (el) cardRefs.current.set(id, el);
+    else cardRefs.current.delete(id);
+  }
+
+  function startDrag(id: string) {
     dragId.current = id;
     setDragging(id);
   }
-  function onDragEnter(id: string) {
+
+  /** 손가락이 화면 위/아래 끝에 닿으면 목록을 따라 스크롤한다 */
+  function edgeScroll(clientY: number) {
+    const EDGE = 90;
+    const SPEED = 12;
+    const h = window.innerHeight;
+    scrollSpeed.current = clientY < EDGE ? -SPEED : clientY > h - EDGE ? SPEED : 0;
+    if (scrollSpeed.current === 0 || rafId.current) return;
+    const tick = () => {
+      if (!dragId.current || scrollSpeed.current === 0) {
+        rafId.current = 0;
+        return;
+      }
+      window.scrollBy(0, scrollSpeed.current);
+      rafId.current = requestAnimationFrame(tick);
+    };
+    rafId.current = requestAnimationFrame(tick);
+  }
+
+  function moveDrag(clientY: number) {
     const from = dragId.current;
-    if (!from || from === id) return;
+    if (!from) return;
+    edgeScroll(clientY);
     setStops((s) => {
-      const fi = s.findIndex((x) => x.id === from);
-      const ti = s.findIndex((x) => x.id === id);
-      if (fi < 0 || ti < 0) return s;
+      const fromIdx = s.findIndex((x) => x.id === from);
+      if (fromIdx < 0) return s;
+      // 카드 높이가 제각각이라 중심선을 넘어설 때만 자리를 바꾼다 (덜덜거림 방지)
+      let to = fromIdx;
+      for (let i = 0; i < s.length; i++) {
+        const el = cardRefs.current.get(s[i].id);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        const mid = r.top + r.height / 2;
+        if (i < fromIdx && clientY < mid) {
+          to = i;
+          break;
+        }
+        if (i > fromIdx && clientY > mid) to = i;
+      }
+      if (to === fromIdx) return s;
       const copy = [...s];
-      const [moved] = copy.splice(fi, 1);
-      copy.splice(ti, 0, moved);
+      const [moved] = copy.splice(fromIdx, 1);
+      copy.splice(to, 0, moved);
       return copy;
     });
   }
-  function onDragEnd() {
+
+  function endDrag() {
     dragId.current = null;
+    scrollSpeed.current = 0;
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = 0;
+    }
     setDragging(null);
   }
+
+  // 드래그 중에는 window에서 이동/종료를 듣는다.
+  // 핸들에 setPointerCapture를 걸면 순서가 바뀌며 React가 DOM 노드를 옮기는 순간
+  // 캡처가 풀려서, 첫 한 칸만 움직이고 손을 떼도 드래그가 끝나지 않았다.
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e: PointerEvent) => {
+      e.preventDefault();
+      moveDrag(e.clientY);
+    };
+    const onUp = () => endDrag();
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    // 마우스로 끌 때 카드 안 텍스트가 선택되는 것 방지
+    document.body.style.userSelect = "none";
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      document.body.style.userSelect = "";
+    };
+  });
+
+  // 드래그 중 언마운트되면 스크롤 루프가 남지 않도록 정리
+  useEffect(
+    () => () => {
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+    },
+    []
+  );
 
   return (
     <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 18px 60px" }}>
@@ -183,7 +265,7 @@ export default function Builder({ loggedIn = false }: { loggedIn?: boolean }) {
 
       <Section title="③ 단계별 장소">
         <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 10 }}>
-          ⠿ 손잡이를 잡고 끌어서 순서를 바꿀 수 있어요
+          ⠿ 손잡이를 잡고 끌거나, ↑↓ 버튼으로 순서를 바꿀 수 있어요
         </div>
         {stops.map((stop, i) => (
           <StopEditor
@@ -198,9 +280,8 @@ export default function Builder({ loggedIn = false }: { loggedIn?: boolean }) {
             onMove={(d) => moveStop(stop.id, d)}
             onAddPlace={(pl) => addPlace(stop.id, pl)}
             onRemovePlace={(pid) => removePlace(stop.id, pid)}
-            onDragStart={() => onDragStart(stop.id)}
-            onDragEnter={() => onDragEnter(stop.id)}
-            onDragEnd={onDragEnd}
+            registerCard={(el) => registerCard(stop.id, el)}
+            onDragStart={() => startDrag(stop.id)}
           />
         ))}
         <button className="btn btn-ghost" style={{ width: "100%", marginTop: 4 }} onClick={addStop}>
@@ -273,9 +354,8 @@ function StopEditor({
   onMove,
   onAddPlace,
   onRemovePlace,
+  registerCard,
   onDragStart,
-  onDragEnter,
-  onDragEnd,
 }: {
   stop: Stop;
   index: number;
@@ -287,14 +367,12 @@ function StopEditor({
   onMove: (d: -1 | 1) => void;
   onAddPlace: (p: Place) => void;
   onRemovePlace: (placeId: string) => void;
+  registerCard: (el: HTMLDivElement | null) => void;
   onDragStart: () => void;
-  onDragEnter: () => void;
-  onDragEnd: () => void;
 }) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  const [armed, setArmed] = useState(false);
 
   async function add() {
     setErr("");
@@ -320,26 +398,22 @@ function StopEditor({
   return (
     <div
       className="card"
-      draggable={armed}
-      onDragStart={onDragStart}
-      onDragEnter={onDragEnter}
-      onDragOver={(e) => e.preventDefault()}
-      onDragEnd={() => {
-        setArmed(false);
-        onDragEnd();
+      ref={(el) => {
+        registerCard(el);
       }}
       style={{ padding: 16, marginBottom: 14, opacity: isDragging ? 0.45 : 1 }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <span
-          onMouseDown={() => setArmed(true)}
-          onMouseUp={() => setArmed(false)}
-          onTouchStart={() => setArmed(true)}
-          onTouchEnd={() => setArmed(false)}
+          onPointerDown={(e) => {
+            if (e.pointerType === "mouse" && e.button !== 0) return;
+            e.preventDefault();
+            onDragStart();
+          }}
           title="끌어서 순서 변경"
           aria-label="드래그 핸들"
           style={{
-            cursor: "grab",
+            cursor: isDragging ? "grabbing" : "grab",
             flex: "none",
             color: "var(--ink-soft)",
             fontSize: 16,
