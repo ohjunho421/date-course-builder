@@ -720,7 +720,7 @@ function PlaceCard({
                 key={i}
                 src={src}
                 alt={place.name}
-                loading="lazy"
+                loading={i === 0 ? "lazy" : "eager"}
                 style={{ width: "100%", height: "100%", flex: "0 0 100%", objectFit: "cover", scrollSnapAlign: "center" }}
               />
             ))}
