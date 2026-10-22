@@ -236,14 +236,18 @@ function extractImages(html: string): string[] {
   const out: string[] = [];
   // 업체 대표 사진 우선
   collectImages(
-    /(?:ldb-phinf|naverbooking-phinf)\.pstatic\.net%2F[^"\\]+?\.(?:jpe?g|png)/gi,
+    /(?:ldb-phinf|naverbooking-phinf)\.pstatic\.net%2F[^"\\]+?\.(?:jpe?g|png)(?![%\w.-])/gi,
     html,
     seen,
     out
   );
   // 음식점이 아닌 장소는 다른 phinf 호스트를 쓴다 (전시·숙소·미용실 등)
+  // 호스트는 반드시 "%2F" 바로 뒤에서 시작해야 한다. 아니면 "%2F%2Fldb-phinf"의
+  // "2Fldb-phinf"까지 호스트로 잡혀 https://2Fldb-phinf... 같은 깨진 URL이 생긴다.
+  // 리뷰 사진은 경로 중간에 ".JPEG%2F..." 폴더가 있어, 확장자 뒤에 경로가 더 이어지면
+  // 거기서 끊지 않도록 (?![%\w.-]) 로 URL 끝을 확인한다.
   collectImages(
-    /[a-z0-9-]*phinf\.pstatic\.net%2F[^"\\]+?\.(?:jpe?g|png)/gi,
+    /(?<=%2F)(?!blogpfthumb)[a-z0-9-]*phinf\.pstatic\.net%2F[^"\\]+?\.(?:jpe?g|png)(?![%\w.-])/gi,
     html,
     seen,
     out
@@ -303,7 +307,9 @@ export async function resolveNaverPlace(url: string): Promise<Place> {
 
   const category = first(/"category":"([^"]*)"/, html) || "장소";
   const address = first(/"roadAddress":"([^"]*)"/, html) || "";
-  const hours = first(/"description":"([^"]*?영업[^"]*?)"/, html) || "";
+  // 짧은 영업 상태 문구만 ("16:00에 영업 시작"). 긴 업체 소개글에도 "영업"이 들어 있어
+  // 길이를 제한하고 줄바꿈 이스케이프(\n)가 섞인 값은 제외한다.
+  const hours = first(/"description":"([^"\\]{0,40}영업[^"\\]{0,40})"/, html) || "";
   const micro = stripControls(first(/"microReviews":\["([^"]*)"/, html));
   const { lat, lng } = extractCoords(html);
 

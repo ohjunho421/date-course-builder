@@ -44,7 +44,12 @@ export default async function CoursePage({ params, searchParams }: PageProps) {
   return (
     <>
       <ShareBar slug={slug} ownerToken={isOwner ? owner : undefined} />
-      <CourseView course={course} initialMemories={memories} />
+      <CourseView
+        course={course}
+        initialMemories={memories}
+        viewerName={viewer?.name ?? null}
+        loginRequired={!!process.env.AUTH_SECRET}
+      />
     </>
   );
 }

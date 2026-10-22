@@ -8,6 +8,8 @@ import { fmtDist, fmtDur, naverDirUrl } from "@/lib/format";
 import type { MapLeg, MapPoint } from "./CourseMap";
 import MemoryLog from "./MemoryLog";
 import AdBanner from "./AdBanner";
+import TossLoginButton from "./TossLoginButton";
+import { useTossEnv } from "@/lib/toss-client";
 
 const CourseMap = dynamic(() => import("./CourseMap"), {
   ssr: false,
@@ -33,9 +35,21 @@ type Leg = { geometry: [number, number][]; distance: number; duration: number; e
 interface CourseViewProps {
   course: Course;
   initialMemories?: CourseMemory[];
+  viewerName?: string | null;
+  /** 로그인 기능이 켜져 있으면 선택 보내기 전에 로그인이 필요하다 */
+  loginRequired?: boolean;
 }
 
-export default function CourseView({ course, initialMemories = [] }: CourseViewProps) {
+export default function CourseView({
+  course,
+  initialMemories = [],
+  viewerName = null,
+  loginRequired = false,
+}: CourseViewProps) {
+  const toss = useTossEnv();
+  const needLogin = loginRequired && !viewerName;
+  // 로그인하러 나갔다 돌아와도 고른 장소가 유지되도록 잠시 보관하는 키
+  const picksKey = `dgg_pending_picks:${course.slug}`;
   // 대중교통 제거 — 도보/차량만 노출 (과거에 생성된 코스 호환)
   const availableModes = course.modes.filter((m) => m === "walk" || m === "car");
   const modes = availableModes.length ? availableModes : ["walk"];
@@ -70,7 +84,7 @@ export default function CourseView({ course, initialMemories = [] }: CourseViewP
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [respName, setRespName] = useState("");
+  const [respName, setRespName] = useState(viewerName ?? "");
   const [respMsg, setRespMsg] = useState("");
   const [submitErr, setSubmitErr] = useState("");
 
@@ -122,6 +136,29 @@ export default function CourseView({ course, initialMemories = [] }: CourseViewP
       ignore = true;
     };
   }, [open, mode, geoPoints]);
+
+  // 로그인 후 돌아오면 보관해 둔 선택을 복원하고 보내기 시트를 바로 연다
+  useEffect(() => {
+    if (needLogin) return;
+    let saved: string | null = null;
+    try {
+      saved = sessionStorage.getItem(picksKey);
+      sessionStorage.removeItem(picksKey);
+    } catch {}
+    if (!saved) return;
+    try {
+      // sessionStorage(외부 저장소)는 SSR 중 읽을 수 없어 마운트 후 effect에서 복원해야 한다
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelected(JSON.parse(saved) as SelectedPlaces);
+      setSubmitOpen(true);
+    } catch {}
+  }, [needLogin, picksKey]);
+
+  function savePicksBeforeLogin() {
+    try {
+      sessionStorage.setItem(picksKey, JSON.stringify(selected));
+    } catch {}
+  }
 
   function togglePlace(stopId: string, name: string) {
     setSelected((prev) => {
@@ -362,25 +399,73 @@ export default function CourseView({ course, initialMemories = [] }: CourseViewP
               })}
             </div>
 
-            <input className="field" aria-label="이름" placeholder="이름 (선택)" value={respName} onChange={(e) => setRespName(e.target.value)} style={{ marginBottom: 10 }} />
-            <textarea
-              className="field"
-              aria-label="한마디"
-              placeholder="한마디 남기기 (선택) — 예: 여기 너무 좋다! 토요일 어때?"
-              value={respMsg}
-              onChange={(e) => setRespMsg(e.target.value)}
-              rows={2}
-              style={{ marginBottom: 12, resize: "none" }}
-            />
-            {submitErr && <div style={{ color: "var(--wine-2)", fontSize: 13, marginBottom: 10 }}>{submitErr}</div>}
-            <div style={{ display: "flex", gap: 9 }}>
-              <button className="btn btn-ghost" style={{ flex: "none", padding: "13px 18px" }} onClick={() => setSubmitOpen(false)}>
-                취소
-              </button>
-              <button className="btn btn-wine" style={{ flex: 1 }} onClick={submitResponse} disabled={submitting}>
-                {submitting ? "보내는 중…" : "보내기 →"}
-              </button>
-            </div>
+            {needLogin ? (
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: 13.5, color: "var(--ink-soft)", margin: "0 0 12px" }}>
+                  누가 골랐는지 상대가 알 수 있도록, 로그인 후 보낼 수 있어요.
+                  <br />
+                  고른 장소는 그대로 유지돼요.
+                </p>
+                {toss ? (
+                  <div onClickCapture={savePicksBeforeLogin}>
+                    <TossLoginButton
+                      next={`/c/${course.slug}`}
+                      label="토스로 로그인하고 보내기"
+                      style={{ width: "100%", borderRadius: 12, padding: "14px 0", fontSize: 15.5 }}
+                    />
+                  </div>
+                ) : (
+                  <a
+                    href={`/api/auth/kakao/login?next=${encodeURIComponent(`/c/${course.slug}`)}`}
+                    onClick={savePicksBeforeLogin}
+                    style={{
+                      display: "block",
+                      background: "#FEE500",
+                      color: "#191600",
+                      fontWeight: 800,
+                      borderRadius: 12,
+                      padding: "14px 0",
+                      textDecoration: "none",
+                    }}
+                  >
+                    💬 카카오로 로그인하고 보내기
+                  </a>
+                )}
+                <button className="btn btn-ghost" style={{ width: "100%", marginTop: 9 }} onClick={() => setSubmitOpen(false)}>
+                  취소
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  className="field"
+                  aria-label="이름"
+                  placeholder="이름 (선택)"
+                  value={respName}
+                  onChange={(e) => setRespName(e.target.value)}
+                  readOnly={!!viewerName}
+                  style={{ marginBottom: 10, ...(viewerName ? { opacity: 0.7 } : null) }}
+                />
+                <textarea
+                  className="field"
+                  aria-label="한마디"
+                  placeholder="한마디 남기기 (선택) — 예: 여기 너무 좋다! 토요일 어때?"
+                  value={respMsg}
+                  onChange={(e) => setRespMsg(e.target.value)}
+                  rows={2}
+                  style={{ marginBottom: 12, resize: "none" }}
+                />
+                {submitErr && <div style={{ color: "var(--wine-2)", fontSize: 13, marginBottom: 10 }}>{submitErr}</div>}
+                <div style={{ display: "flex", gap: 9 }}>
+                  <button className="btn btn-ghost" style={{ flex: "none", padding: "13px 18px" }} onClick={() => setSubmitOpen(false)}>
+                    취소
+                  </button>
+                  <button className="btn btn-wine" style={{ flex: 1 }} onClick={submitResponse} disabled={submitting}>
+                    {submitting ? "보내는 중…" : "보내기 →"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -680,6 +765,11 @@ function PlaceCard({
   selected: boolean;
   onToggle: () => void;
 }) {
+  // 예전에 저장된 코스엔 깨진 사진 URL·긴 소개글이 hours로 들어간 경우가 있어 화면에서 걸러낸다
+  const [broken, setBroken] = useState<string[]>([]);
+  const images = place.images.filter((src) => !broken.includes(src));
+  const hours = place.hours.length <= 40 && !/\\n|\n/.test(place.hours) ? place.hours : "";
+
   return (
     <article className={`card${selected ? " selected" : ""}`} style={{ marginBottom: 16, position: "relative" }}>
       {selected && (
@@ -702,7 +792,7 @@ function PlaceCard({
       )}
 
       {/* photo gallery */}
-      {place.images.length > 0 && (
+      {images.length > 0 && (
         <div style={{ position: "relative" }}>
           <div
             className="hide-scroll"
@@ -714,18 +804,19 @@ function PlaceCard({
               background: "#efe7da",
             }}
           >
-            {place.images.map((src, i) => (
+            {images.map((src, i) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                key={i}
+                key={src}
                 src={src}
                 alt={place.name}
                 loading={i === 0 ? "lazy" : "eager"}
+                onError={() => setBroken((prev) => [...prev, src])}
                 style={{ width: "100%", height: "100%", flex: "0 0 100%", objectFit: "cover", scrollSnapAlign: "center" }}
               />
             ))}
           </div>
-          {place.images.length > 1 && (
+          {images.length > 1 && (
             <span
               style={{
                 position: "absolute",
@@ -739,7 +830,7 @@ function PlaceCard({
                 borderRadius: 999,
               }}
             >
-              ← 사진 {place.images.length}장
+              ← 사진 {images.length}장
             </span>
           )}
         </div>
@@ -814,15 +905,15 @@ function PlaceCard({
         )}
 
         {/* hours & address */}
-        {(place.hours || place.address) && (
+        {(hours || place.address) && (
           <div style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "14px 0 16px", display: "grid", gap: 5 }}>
-            {place.hours && <div>🕒 {place.hours}</div>}
+            {hours && <div>🕒 {hours}</div>}
             {place.address && <div>📍 {place.address}</div>}
           </div>
         )}
 
         {/* actions */}
-        <div style={{ display: "flex", gap: 9, marginTop: place.hours || place.address ? 0 : 14 }}>
+        <div style={{ display: "flex", gap: 9, marginTop: hours || place.address ? 0 : 14 }}>
           <a className="btn btn-naver" style={{ flex: 1 }} href={place.placeUrl} target="_blank" rel="noopener noreferrer">
             N 네이버에서 보기
           </a>
