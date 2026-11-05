@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import type { Place, Stop } from "@/lib/types";
 import { MODE_LABEL, MODE_EMOJI } from "@/lib/types";
 import { addMyCourse } from "@/lib/my-courses";
+import { apiFetch } from "@/lib/api";
 
 const ALL_MODES = ["walk", "car"];
 
@@ -99,7 +100,7 @@ export default function Builder({ loggedIn = false }: { loggedIn?: boolean }) {
       return setError("최소 한 단계에 장소를 한 곳 이상 추가해 주세요.");
     setSubmitting(true);
     try {
-      const res = await fetch("/api/courses", {
+      const res = await apiFetch("/api/courses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -379,7 +380,7 @@ function StopEditor({
     if (!url.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/resolve", {
+      const res = await apiFetch("/api/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: url.trim() }),

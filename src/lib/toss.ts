@@ -7,6 +7,8 @@ import https from "node:https";
 const TOSS_API_BASE_URL = process.env.TOSS_API_BASE_URL || "https://apps-in-toss-api.toss.im";
 const GENERATE_TOKEN_PATH = "/api-partner/v1/apps-in-toss/user/oauth2/generate-token";
 const LOGIN_ME_PATH = "/api-partner/v1/apps-in-toss/user/oauth2/login-me";
+// 익명 식별키 교환 — https://developers-apps-in-toss.toss.im/guide/authentication/anonymous-key-auth-code
+const ANON_KEY_EXCHANGE_PATH = "/api-partner/v1/apps-in-toss/users/anon-key/exchange";
 
 /** PEM을 env에서 읽는다. *_BASE64(한 줄) 우선, 없으면 원문 PEM. */
 function readPem(name: string): string | null {
@@ -23,7 +25,7 @@ function readPem(name: string): string | null {
   return raw ? raw.replace(/\\n/g, "\n") : null;
 }
 
-/** 토스 로그인은 mTLS 인증서와 세션 서명 키가 모두 있어야 활성화된다 */
+/** 토스 로그인·익명 식별키 교환은 mTLS 인증서와 세션 서명 키가 모두 있어야 활성화된다 */
 export function tossConfigured(): boolean {
   return !!readPem("TOSS_MTLS_CERT") && !!readPem("TOSS_MTLS_KEY") && !!process.env.AUTH_SECRET;
 }
@@ -122,4 +124,19 @@ export async function loginWithAuthorizationCode(
     userKey: String(me.userKey),
     name: me.name || me.nickname || "토스 사용자",
   };
+}
+
+/**
+ * 미니앱이 User.createAnonymousKeyAuthCode()로 받은 일회용 코드를 익명 식별키로 교환한다.
+ * 클라이언트가 getAnonymousKey()로 얻은 해시는 신뢰하지 않고, 서버가 교환으로 받은 키만 쓴다.
+ */
+export async function exchangeAnonymousKey(code: string): Promise<string> {
+  const result = await tossApi<{ anonKey?: string }>(ANON_KEY_EXCHANGE_PATH, {
+    method: "POST",
+    body: { code },
+  });
+  if (typeof result.anonKey !== "string" || !result.anonKey) {
+    throw new Error("토스 API 응답에 anonKey가 없어요");
+  }
+  return result.anonKey;
 }

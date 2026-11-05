@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const jwt = await signSession(user);
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || req.nextUrl.origin;
-    const res = NextResponse.json({ ok: true });
+    const res = NextResponse.json({ ok: true, token: jwt, name });
     res.cookies.set(SESSION_COOKIE, jwt, {
       httpOnly: true,
       secure: baseUrl.startsWith("https"),

@@ -7,6 +7,9 @@ import SiteFooter from "@/components/SiteFooter";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // 앱인토스 출시 체크리스트: 지도 외 제스처 확대·축소 비활성화
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 

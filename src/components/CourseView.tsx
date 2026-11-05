@@ -10,6 +10,7 @@ import MemoryLog from "./MemoryLog";
 import AdBanner from "./AdBanner";
 import TossLoginButton from "./TossLoginButton";
 import { useTossEnv } from "@/lib/toss-client";
+import { apiFetch } from "@/lib/api";
 
 const CourseMap = dynamic(() => import("./CourseMap"), {
   ssr: false,
@@ -120,7 +121,7 @@ export default function CourseView({
         return;
       }
       try {
-        const res = await fetch("/api/route", {
+        const res = await apiFetch("/api/route", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ mode, points: geoPoints.map((p) => ({ lat: p.lat, lng: p.lng })) }),
@@ -202,7 +203,7 @@ export default function CourseView({
     }
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/courses/${course.slug}/responses`, {
+      const res = await apiFetch(`/api/courses/${course.slug}/responses`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: respName, message: respMsg, picks }),
@@ -632,7 +633,7 @@ function StopSection({
     try {
       // 파싱만 하지 말고 서버(DB)에 영속화까지 하는 엔드포인트를 호출한다.
       // 이래야 새로고침/재방문 후에도 추가한 장소가 남는다.
-      const res = await fetch(`/api/courses/${slug}/places`, {
+      const res = await apiFetch(`/api/courses/${slug}/places`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stopId: stop.id, url: url.trim() }),

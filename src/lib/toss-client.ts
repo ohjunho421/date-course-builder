@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { apiFetch, setToken } from "@/lib/api";
 
 // 앱인토스 WebView(react-native-webview)에서만 주입되는 브릿지로 환경을 감지한다.
 export function isTossEnv(): boolean {
@@ -21,15 +22,16 @@ export function useTossEnv(): boolean {
 export async function tossLogin(next: string): Promise<void> {
   const { appLogin } = await import("./ait-sdk");
   const { authorizationCode, referrer } = await appLogin();
-  const res = await fetch("/api/auth/toss/login", {
+  const res = await apiFetch("/api/auth/toss/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ authorizationCode, referrer }),
   });
+  const data = await res.json().catch(() => null);
   if (!res.ok) {
-    const data = await res.json().catch(() => null);
     throw new Error(data?.error || "토스 로그인에 실패했어요.");
   }
+  if (typeof data?.token === "string") setToken(data.token);
   window.location.assign(next.startsWith("/") ? next : "/");
 }
 

@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 
 export const SESSION_COOKIE = "dgg_session";
@@ -27,7 +27,12 @@ export async function signSession(user: SessionUser): Promise<string> {
 export async function getSession(): Promise<SessionUser | null> {
   if (!process.env.AUTH_SECRET) return null;
   const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
+  let token = store.get(SESSION_COOKIE)?.value;
+  if (!token) {
+    // 앱인토스 미니앱은 다른 origin에서 호출하므로 쿠키 대신 Bearer 토큰으로 세션을 보낸다
+    const auth = (await headers()).get("authorization") ?? "";
+    if (auth.startsWith("Bearer ")) token = auth.slice(7).trim();
+  }
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secretKey());

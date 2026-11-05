@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { CourseMemory } from "@/lib/types";
+import { apiFetch, apiUrl } from "@/lib/api";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 서버 제한과 동일하게 유지
 const MAX_VIDEO_BYTES = 30 * 1024 * 1024;
@@ -14,7 +15,7 @@ interface MemoryLogProps {
 type PendingFile = { file: File; url: string; kind: "image" | "video" };
 
 function mediaUrl(slug: string, id: string): string {
-  return `/api/courses/${slug}/memories/${id}`;
+  return apiUrl(`/api/courses/${slug}/memories/${id}`);
 }
 
 function fmtDate(iso: string): string {
@@ -69,7 +70,7 @@ export default function MemoryLog({ slug, initial }: MemoryLogProps) {
       const fd = new FormData();
       if (file) fd.append("file", file);
       fd.append("text", text.trim());
-      const res = await fetch(`/api/courses/${slug}/memories`, { method: "POST", body: fd });
+      const res = await apiFetch(`/api/courses/${slug}/memories`, { method: "POST", body: fd });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "기록을 저장하지 못했어요.");
       setMemories((prev) => [j.memory as CourseMemory, ...prev]);
@@ -95,7 +96,7 @@ export default function MemoryLog({ slug, initial }: MemoryLogProps) {
   async function remove(id: string) {
     if (!window.confirm("이 기록을 지울까요?")) return;
     try {
-      const res = await fetch(`/api/courses/${slug}/memories/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/courses/${slug}/memories/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       setMemories((prev) => prev.filter((m) => m.id !== id));
       setViewer((v) => (v?.id === id ? null : v));
